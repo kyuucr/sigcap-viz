@@ -5,13 +5,9 @@ block content
     .container-fluid
       a.navbar-brand(href='.')= title
   .container-md
-    h3= 'Files'
-    form.row.row-cols-lg-auto.g-3.align-items-center
+    .row.row-cols-sm-auto.g-3.align-items-center.mt-1
       .col-12
-        label.visually-hidden(for='inputFilter')= 'File filter'
-        input#inputFilter.form-control(type='text' placeholder='File filter' onkeydown='if (event.keyCode == 13) { filter(); return false }')
-      .col-12
-        button.btn.btn-primary(type='button' onclick='filter()')= 'Submit filter'
+        button.btn.btn-primary(type='button' onclick='showMap()')= 'Map Visualization'
       .col-12
         button.btn.btn-primary(type='button' onclick='fetchFiles("general")')= 'Download General CSV'
       .col-12
@@ -20,22 +16,65 @@ block content
         button.btn.btn-primary(type='button' onclick='fetchFiles("wifi")')= 'Download Wi-Fi CSV'
       .col-12
         button.btn.btn-primary(type='button' onclick='fetchFiles("json")')= 'Download Raw JSON'
-      .col-12
-        button.btn.btn-primary(type='button' onclick='map()')= 'Map visualization'
-    table.table.table-striped
-      thead
-        tr
-          td
-            input#filesCheckAll.form-check-input(type='checkbox' onclick='checkAll()')
-            label.form-check-label.ms-1(for='filesCheckAll')= 'File name'
-      tbody#fileTable
+    .row
+      .col-lg-6.col-md-12.g-3
+        h3= 'Spatial selection'
+        .row.g-3.align-items-end
+          .col-md.col-sm-12
+            label(for='inputGpsStart')= 'Start coordinates'
+            input#inputGpsStart.form-control(type='text' placeholder='<latitude>, <longitude>' onkeydown='return (event.keyCode !== 13)')
+          .col-md.col-sm-12
+            label(for='inputGpsEnd')= 'End coordinates'
+            input#inputGpsEnd.form-control(type='text' placeholder='<latitude>, <longitude>' onkeydown='return (event.keyCode !== 13)')
+          .col-md-3.col-sm-12
+            button.btn.btn-primary(type='button' onclick='selectOnMap()')= 'Select on map'
+
+      .col-lg-6.col-md-12.g-3
+        h3.g-3= 'Date time selection'
+        .row.g-3.align-items-center
+          .col-md.col-sm-12
+            label(for='inputDtStart')= 'Start date and time'
+            input#inputDtStart.form-control(type='text' placeholder='Date and time' onkeydown='return (event.keyCode !== 13)')
+          .col-md.col-sm-12
+            label(for='inputDtEnd')= 'End date and time'
+            input#inputDtEnd.form-control(type='text' placeholder='Date and time' onkeydown='return (event.keyCode !== 13)')
+
+      .col-12.g-3
+        h3= 'File selection'
+        .row.g-3.align-items-center.mb-2
+          .col-8
+            label.visually-hidden(for='inputFilter')= 'File filter'
+            input#inputFilter.form-control(type='text' placeholder='File filter' onkeydown='if (event.keyCode == 13) { filter(); return false }')
+          .col-4
+            button.btn.btn-primary(type='button' onclick='filter()')= 'Submit filter'
+        .overflow-auto(style='max-height: 70vh;')
+          table.table.table-striped
+            thead
+              tr
+                td
+                  input#filesCheckAll.form-check-input(type='checkbox' onclick='checkAll()')
+                  label.form-check-label.ms-1(for='filesCheckAll')= 'File name'
+            tbody#fileTable
+
     #mapModal.modal.fade(tabindex='-1' aria-labelledby='mapModalLabel' aria-hidden='true')
       .modal-dialog.modal-fullscreen
         .modal-content
           .modal-header
-            h1#mapModalLabel.modal-title.fs-5= 'Heatmap'
+            h1#mapModalLabel.modal-title.fs-5= 'Map'
             button.btn-close(type='button' data-bs-dismiss='modal' aria-label='Close')
           .modal-body
-            #heatmap
+            .container-md
+              .row
+                #heatmap
+              .row.py-3.align-items-end
+                .col-md.col-sm-12
+                  label(for='previewGpsStart')= 'Start coordinates'
+                  input#previewGpsStart.form-control(readonly type='text')
+                .col-md.col-sm-12
+                  label(for='previewGpsEnd')= 'End coordinates'
+                  input#previewGpsEnd.form-control(readonly type='text')
+                .col-md-3.col-sm-12
+                  button.btn.btn-primary(type='button' data-bs-dismiss='modal' aria-label='Close')= 'Select coordinates'
 
   script(src='/javascripts/index.js')
+  script(async defer src='https://maps.googleapis.com/maps/api/js?key=AIzaSyAcp-79zLw4hn8uA4HRJsWrRhvQQIp3ep4&loading=async&callback=initMap&libraries=visualization,drawing')
