@@ -1,0 +1,33 @@
+extends layout
+
+block content
+  nav.navbar.navbar-expand-lg.bg-body-tertiary
+    .container-fluid
+      a.navbar-brand(href='.')= title
+  .container-md
+    h3= 'Files'
+    form.row.row-cols-lg-auto.g-3.align-items-center
+      .col-12
+        label.visually-hidden(for='inputFilter')= 'File filter'
+        input#inputFilter.form-control(type='text', placeholder='Filter', onkeydown='if (event.keyCode == 13) { filter(); return false }')
+      .col-12
+        button.btn.btn-primary(type='button', onclick='filter()')= 'Submit filter'
+      .col-12
+        button.btn.btn-primary(type='button', onclick='fetchFiles("general")')= 'Download General CSV'
+      .col-12
+        button.btn.btn-primary(type='button', onclick='fetchFiles("cellular")')= 'Download Cellular CSV'
+      .col-12
+        button.btn.btn-primary(type='button', onclick='fetchFiles("wifi")')= 'Download Wi-Fi CSV'
+      .col-12
+        button.btn.btn-primary(type='button', onclick='fetchFiles("json")')= 'Download Raw JSON'
+      .col-12
+        button.btn.btn-primary(type='button', onclick='map()')= 'Map visualization'
+    table.table.table-striped
+      thead
+        tr
+          td
+            input#filesCheckAll.form-check-input(type='checkbox', onclick='checkAll()')
+            label.form-check-label.ms-1(for='filesCheckAll')= 'File name'
+      tbody#fileTable
+
+  script(src='/javascripts/index.js')
