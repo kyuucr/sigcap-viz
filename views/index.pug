@@ -38,6 +38,9 @@ block content
           .col-md.col-sm-12
             label(for='inputDtEnd')= 'End date and time'
             input#inputDtEnd.form-control(type='text' placeholder='Date and time' onkeydown='return (event.keyCode !== 13)')
+          .col-md-3.col-sm-12
+            label(for='inputDtZone')= 'Timezone'
+            input#inputDtZone.form-control(type='text' placeholder='-0400' onkeydown='return (event.keyCode !== 13)')
 
       .col-12.g-3
         h3= 'File selection'
