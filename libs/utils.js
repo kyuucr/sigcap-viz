@@ -5,9 +5,29 @@ const usualCarriers = [
   "Verizon",
 ]
 
-const dataUtils = {
+const utils = {
   sortNumDsc: (a, b) => b - a,
   sortNumAsc: (a, b) => a - b,
+
+  mwToDbm: function(input) {
+    if (input.map !== undefined) {
+      return input.map(val => 10 * Math.log10(val))
+    } else if (typeof input === "number")  {
+      return 10 * Math.log10(input)
+    } else {
+      throw Exception(`Input ${input} is not a number!`)
+    }
+  },
+
+  dbmToMw: function(input) {
+    if (input.map !== undefined) {
+      return input.map(val => Math.pow(10, val / 10))
+    } else if (typeof input === "number")  {
+      return Math.pow(10, input / 10)
+    } else {
+      throw Exception(`Input ${input} is not a number!`)
+    }
+  },
 
   isValidOp: function(opString) {
     return opString !== undefined
@@ -118,4 +138,4 @@ const dataUtils = {
   },
 }
 
-module.exports = dataUtils
+module.exports = utils
