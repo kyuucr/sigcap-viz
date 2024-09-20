@@ -144,7 +144,17 @@ function fetchFiles(mode) {
       console.log('error: ' + err)
       window.alert(`error: ${err}`)
     })
+}
 
+const mapModal = new bootstrap.Modal(document.getElementById("mapModal"))
+
+function map() {
+  if (selectedFiles.length === 0) {
+    window.alert("Please select at least 1 file !")
+    return
+  }
+
+  mapModal.show()
 }
 
 fetchFileList()
