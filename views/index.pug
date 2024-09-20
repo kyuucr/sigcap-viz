@@ -9,25 +9,33 @@ block content
     form.row.row-cols-lg-auto.g-3.align-items-center
       .col-12
         label.visually-hidden(for='inputFilter')= 'File filter'
-        input#inputFilter.form-control(type='text', placeholder='Filter', onkeydown='if (event.keyCode == 13) { filter(); return false }')
+        input#inputFilter.form-control(type='text' placeholder='File filter' onkeydown='if (event.keyCode == 13) { filter(); return false }')
       .col-12
-        button.btn.btn-primary(type='button', onclick='filter()')= 'Submit filter'
+        button.btn.btn-primary(type='button' onclick='filter()')= 'Submit filter'
       .col-12
-        button.btn.btn-primary(type='button', onclick='fetchFiles("general")')= 'Download General CSV'
+        button.btn.btn-primary(type='button' onclick='fetchFiles("general")')= 'Download General CSV'
       .col-12
-        button.btn.btn-primary(type='button', onclick='fetchFiles("cellular")')= 'Download Cellular CSV'
+        button.btn.btn-primary(type='button' onclick='fetchFiles("cellular")')= 'Download Cellular CSV'
       .col-12
-        button.btn.btn-primary(type='button', onclick='fetchFiles("wifi")')= 'Download Wi-Fi CSV'
+        button.btn.btn-primary(type='button' onclick='fetchFiles("wifi")')= 'Download Wi-Fi CSV'
       .col-12
-        button.btn.btn-primary(type='button', onclick='fetchFiles("json")')= 'Download Raw JSON'
+        button.btn.btn-primary(type='button' onclick='fetchFiles("json")')= 'Download Raw JSON'
       .col-12
-        button.btn.btn-primary(type='button', onclick='map()')= 'Map visualization'
+        button.btn.btn-primary(type='button' onclick='map()')= 'Map visualization'
     table.table.table-striped
       thead
         tr
           td
-            input#filesCheckAll.form-check-input(type='checkbox', onclick='checkAll()')
+            input#filesCheckAll.form-check-input(type='checkbox' onclick='checkAll()')
             label.form-check-label.ms-1(for='filesCheckAll')= 'File name'
       tbody#fileTable
+    #mapModal.modal.fade(tabindex='-1' aria-labelledby='mapModalLabel' aria-hidden='true')
+      .modal-dialog.modal-fullscreen
+        .modal-content
+          .modal-header
+            h1#mapModalLabel.modal-title.fs-5= 'Heatmap'
+            button.btn-close(type='button' data-bs-dismiss='modal' aria-label='Close')
+          .modal-body
+            #heatmap
 
   script(src='/javascripts/index.js')
