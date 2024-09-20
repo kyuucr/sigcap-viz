@@ -103,6 +103,7 @@ function fetchFileList(extras) {
     })
     .catch(function (err) {
       console.log('error: ' + err)
+      window.alert(`error: ${err}`)
     })
 }
 
@@ -136,12 +137,12 @@ function fetchFiles(mode) {
       return response.blob()
     })
     .then(function (data) {
-      // Usage
       // console.log(data)
-      downloadBlob(data, `${mode}.${mode === "json" ? "json" : "csv"}`);
+      downloadBlob(data, mode === "json" ? "raw.json" : `${mode}.csv`);
     })
     .catch(function (err) {
       console.log('error: ' + err)
+      window.alert(`error: ${err}`)
     })
 
 }
