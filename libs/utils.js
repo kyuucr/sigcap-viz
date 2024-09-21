@@ -152,7 +152,7 @@ const utils = {
       if (stats.isFile() && entry.match(pattern)) {
         matchingFiles.push(fullPath);
       } else if (stats.isDirectory()) {
-        const subdirectoryMatches = await rglob(fullPath, pattern);
+        const subdirectoryMatches = await this.rglob(fullPath, pattern);
         matchingFiles = matchingFiles.concat(subdirectoryMatches);
       }
     }
