@@ -1,5 +1,9 @@
 const selectedFiles = []
 let totalEntries = 0
+let startGps = ""
+let endGps = ""
+let startTimestamp = ""
+let endTimestamp = ""
 
 function downloadBlob(blob, name) {
   // Convert your blob into a Blob URL (a special url that points to an object in the browser's memory)
@@ -95,15 +99,19 @@ function appendData(data) {
 function fetchFileList(extras) {
   fetch("/files", extras)
     .then(function (response) {
+      if (response.status !== 200) {
+        return response.text().then(errText => {
+          throw new Error(errText)
+        })
+      }
       return response.json()
     })
     .then(function (data) {
-      // console.log(data)
       appendData(data)
     })
     .catch(function (err) {
-      console.log('error: ' + err)
-      window.alert(`error: ${err}`)
+      console.log(err)
+      window.alert(err)
     })
 }
 
@@ -116,14 +124,33 @@ function filter() {
       'Accept': 'application/json',
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({command: "filter", params: filter.value})
+    body: JSON.stringify({ command: "filter", params: filter.value })
   })
 }
 
 function fetchFiles(mode) {
-  if (selectedFiles.length === 0) {
-    window.alert("Please select at least 1 file !")
+  if (selectedFiles.length === 0
+    && (startGps === "" || endGps === "")
+    && (startTimestamp === "" || endTimestamp === "")) {
+    window.alert("Please make at least one selection: GPS coordinates, date range, or files.")
     return
+  }
+
+  let filterObj = {}
+  if (selectedFiles.length > 0) {
+    filterObj.files = selectedFiles
+  }
+  if (startGps !== "" && endGps !== "") {
+    filterObj.gps = {
+      start: startGps,
+      end: endGps
+    }
+  }
+  if (startTimestamp !== "" && endTimestamp !== "") {
+    filterObj.timestamp = {
+      start: startTimestamp,
+      end: endTimestamp
+    }
   }
 
   fetch("/files", {
@@ -132,17 +159,21 @@ function fetchFiles(mode) {
       'Accept': 'application/json',
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({command: mode, params: selectedFiles})
+    body: JSON.stringify({ command: mode, params: filterObj})
   }).then(function (response) {
+      if (response.status !== 200) {
+        return response.text().then(errText => {
+          throw new Error(errText)
+        })
+      }
       return response.blob()
     })
     .then(function (data) {
-      // console.log(data)
-      downloadBlob(data, mode === "json" ? "raw.json" : `${mode}.csv`);
+      downloadBlob(data, mode === "json" ? "raw.json" : `${mode}.csv`)
     })
     .catch(function (err) {
-      console.log('error: ' + err)
-      window.alert(`error: ${err}`)
+      console.log(err)
+      window.alert(err)
     })
 }
 
@@ -150,7 +181,7 @@ const mapModal = new bootstrap.Modal(document.getElementById("mapModal"))
 
 function showMap() {
   if (selectedFiles.length === 0) {
-    window.alert("Please select at least 1 file !")
+    window.alert("Please make at least one selection: GPS coordinates, date range, or files.")
     return
   }
 
@@ -161,6 +192,10 @@ function selectOnMap() {
   mapModal.show()
 }
 
+
+////////////////////////
+// GMap APIs
+////////////////////////
 const plainMap = [
   {
     "elementType": "geometry",
@@ -375,12 +410,19 @@ function initMap() {
 
     console.log('Bounding Coordinates:');
     console.log('Southwest:', sw.lat(), sw.lng());
-    document.getElementById("inputGpsStart").value = `${sw.lat()}, ${sw.lng()}`
-    document.getElementById("previewGpsStart").value = `${sw.lat()}, ${sw.lng()}`
+    startGps = `${sw.lat()}, ${sw.lng()}`
+    document.getElementById("inputGpsStart").value = startGps
+    document.getElementById("previewGpsStart").value = startGps
     console.log('Northeast:', ne.lat(), ne.lng());
-    document.getElementById("inputGpsEnd").value = `${ne.lat()}, ${ne.lng()}`
-    document.getElementById("previewGpsEnd").value = `${ne.lat()}, ${ne.lng()}`
+    endGps = `${ne.lat()}, ${ne.lng()}`
+    document.getElementById("inputGpsEnd").value = endGps
+    document.getElementById("previewGpsEnd").value = endGps
   });
 }
+
+
+////////////////////////
+// Initializations
+////////////////////////
 
 fetchFileList()

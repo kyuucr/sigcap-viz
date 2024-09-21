@@ -638,7 +638,11 @@ const csv = {
     }
 
     console.log(`# general entries= ${outputArr.length}`)
-    return toCsv(outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp)))
+    if (outputArr.length === 0) {
+      return ""
+    } else {
+      return toCsv(outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp)))
+    }
   },
 
   cellular: function(sigcapJson) {
@@ -804,7 +808,11 @@ const csv = {
     }
 
     console.log(`# cellular entries= ${outputArr.length}`)
-    return toCsv(outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp)))
+    if (outputArr.length === 0) {
+      return ""
+    } else {
+      return toCsv(outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp)))
+    }
   },
 
   wifi: function(sigcapJson) {
@@ -938,7 +946,11 @@ const csv = {
     }
 
     console.log(`# Wi-Fi entries= ${outputArr.length}`)
-    return toCsv(outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp)))
+    if (outputArr.length === 0) {
+      return ""
+    } else {
+      return toCsv(outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp)))
+    }
   }
 }
 

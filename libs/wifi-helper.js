@@ -241,20 +241,6 @@ const wifiHelper = {
             }
         }
         return NaN
-    },
-
-    getWifiStandard: function (capabilities) {
-        if (capabilities.includes("-HE")) {
-            return "11ax"
-            }
-        if (capabilities.includes("-VHT")) {
-            return "11ac"
-            }
-        if (capabilities.includes("-HT")) {
-            return "11n"
-        } else {
-            return "legacy"
-        }
     }
 
 }
