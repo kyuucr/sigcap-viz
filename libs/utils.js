@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+
 const usualCarriers = [
   "AT&T",
   "Sprint",
@@ -135,6 +138,26 @@ const utils = {
 
   cleanString: function(string) {
     return (string === undefined) ? "N/A" : string;
+  },
+
+  rglob: async function(directoryPath, pattern = '*') {
+    let matchingFiles = [];
+
+    const entries = await fs.promises.readdir(directoryPath);
+
+    for (const entry of entries) {
+      const fullPath = path.join(directoryPath, entry);
+      const stats = await fs.promises.stat(fullPath);
+
+      if (stats.isFile() && entry.match(pattern)) {
+        matchingFiles.push(fullPath);
+      } else if (stats.isDirectory()) {
+        const subdirectoryMatches = await rglob(fullPath, pattern);
+        matchingFiles = matchingFiles.concat(subdirectoryMatches);
+      }
+    }
+
+    return matchingFiles;
   },
 }
 
