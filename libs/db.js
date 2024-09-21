@@ -1,5 +1,5 @@
 const pgp = require("pg-promise")(/* options */)
-const auth = require("../auth/secrets").psql
-const db = pgp(auth)
+const { psql } = require("../auth/secrets")
+const db = pgp(psql)
 
 module.exports = db
