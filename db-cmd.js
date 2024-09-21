@@ -1,4 +1,4 @@
-const AdmZip = require('adm-zip');
+const AdmZip = require("adm-zip");
 const fs = require("fs");
 const path = require("path"); 
 const { parseArgs } = require("util");
@@ -103,45 +103,57 @@ async function importZip(inputPath) {
     } else {
       zipFilesFound = await utils.rglob(inputPath, /\.zip$/);
     }
+    totalCount = zipFilesFound.length;
     console.log(`# of zipfiles= ${zipFilesFound.length}`);
-    // console.log(zipFilesFound);
 
+    let fileIdx = 1;
     for (const zipFilePath of zipFilesFound) {
-      const promises = [];
-      const zip = new AdmZip(zipFilePath);
-      const zipEntries = zip.getEntries();
       const fn = path.basename(zipFilePath, ".zip");
-      console.log(`Reading ${fn} ... # of zip entries= ${zipEntries.length}`);
+      console.log(`(${fileIdx}/${totalCount}) Reading ${fn} ...`);
+      const promises = [];
+      let zip;
+      try {
+        zip = new AdmZip(zipFilePath);
+      } catch (err) {
+        console.error(`Error reading ${fn} !`);
+        console.error(err);
+        totalFailure += 1;
+        continue;
+      }
+      const zipEntries = zip.getEntries();
+      console.log(`# of zip entries= ${zipEntries.length}`);
 
       for (const zipEntry of zipEntries) {
         // Process only files, not directories
         if (!zipEntry.isDirectory) {
-          // Extract file content as JSON
-          const fileContent = zip.readAsText(zipEntry);
-          const inputJson = JSON.parse(fileContent);
-          // console.log(inputJson);
+          let inputs;
+          try {
+            // Extract file content as JSON
+            const fileContent = zip.readAsText(zipEntry);
+            const inputJson = JSON.parse(fileContent);
 
-          // Extract additional attributes
-          const uuid_dt = `${inputJson.uuid ? inputJson.uuid : "0"}-`
-            + `${path.basename(zipEntry.entryName, ".txt")}`;
-          const timestamp = utils.getCleanDatetime(inputJson);
-          // console.log(fn, uuid_dt, timestamp)
+            // Extract additional attributes
+            const uuid_dt = `${inputJson.uuid ? inputJson.uuid : "0"}-`
+              + `${path.basename(zipEntry.entryName, ".txt")}`;
+            const timestamp = utils.getCleanDatetime(inputJson);
 
+            inputs = [fn, uuid_dt, timestamp, JSON.stringify(inputJson)];
+          } catch (err) {
+            console.error(`Error reading ${zipEntry.entryName}`);
+            console.error(err);
+            continue;
+          }
           promises.push(
             sco.none(
               "INSERT INTO data(fn, uuid_dt, data_timestamp, properties) "
                 + "VALUES ($1, $2, $3, $4) ON CONFLICT (uuid_dt) DO NOTHING;",
-              [fn, uuid_dt, timestamp, JSON.stringify(inputJson)]));
+              inputs));
         }
       }
 
       // Wait until all zip entries are processed
-      const results = await Promise.allSettled(promises)
-      const failureCount = results.filter(val => val.status === "rejected").length;
-      console.log(`Results failure rate= ${failureCount / zipEntries.length}`);
-
-      totalCount += zipEntries.length;
-      totalFailure += failureCount;
+      await Promise.allSettled(promises);
+      fileIdx += 1;
     }
   } catch (error) {
     console.error(error);
@@ -150,6 +162,6 @@ async function importZip(inputPath) {
     if (sco) {
       sco.done();
     }
-    console.log(`Import done ! Total failure rate = ${totalFailure / totalCount}`)
+    console.log(`Import done ! Failure rate = ${(totalFailure / totalCount).toFixed(0)}%`)
   }
 }
