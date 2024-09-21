@@ -139,7 +139,7 @@ function fetchFiles(mode) {
       && (startGps === "" || endGps === "")
       && (startDt === "" || endDt === "" || zoneDt === "")) {
     window.alert("Please make at least one selection: GPS coordinates, date range, or files.")
-    return
+    return false;
   }
 
   let filterObj = {}
@@ -185,20 +185,34 @@ function fetchFiles(mode) {
       console.log(err)
       window.alert(err)
     })
+
+  return false;
 }
 
 const mapModal = new bootstrap.Modal(document.getElementById("mapModal"))
 
-function showMap() {
-  if (selectedFiles.length === 0) {
+function showMap(mode) {
+  let startGps = document.getElementById("inputGpsStart").value
+  let endGps = document.getElementById("inputGpsEnd").value
+  let startDt = document.getElementById("inputDtStart").value
+  let endDt = document.getElementById("inputDtEnd").value
+  let zoneDt = document.getElementById("inputDtZone").value
+  if (mode !== "selectCoord"
+      && selectedFiles.length === 0
+      && (startGps === "" || endGps === "")
+      && (startDt === "" || endDt === "" || zoneDt === "")) {
     window.alert("Please make at least one selection: GPS coordinates, date range, or files.")
-    return
+    return false;
   }
 
-  mapModal.show()
-}
+  if (mode === "selectCoord") {
+    document.getElementById("coordBox").style.display = ''
+    document.getElementById("vizBox").style.display = 'none'
+  } else {
+    document.getElementById("coordBox").style.display = 'none'
+    document.getElementById("vizBox").style.display = ''
+  }
 
-function selectOnMap() {
   mapModal.show()
 }
 

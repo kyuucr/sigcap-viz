@@ -7,13 +7,23 @@ block content
   .container-md
     .row.row-cols-sm-auto.g-3.align-items-center.mt-1
       .col-12
-        button.btn.btn-primary(type='button' onclick='showMap()')= 'Map Visualization'
+        .btn-group(role='group')
+          button.btn.btn-primary.dropdown-toggle(type='button' data-bs-toggle='dropdown' aria-expanded='false')= 'Map Visualization'
+          ul.dropdown-menu
+            li
+              a.dropdown-item(href='javascript:void(0);' onclick='showMap("cellular")')= 'Cellular Heatmap'
+            li
+              a.dropdown-item(href='javascript:void(0);' onclick='showMap("wifi")')= 'Wi-Fi Heatmap'
       .col-12
-        button.btn.btn-primary(type='button' onclick='fetchFiles("general")')= 'Download General CSV'
-      .col-12
-        button.btn.btn-primary(type='button' onclick='fetchFiles("cellular")')= 'Download Cellular CSV'
-      .col-12
-        button.btn.btn-primary(type='button' onclick='fetchFiles("wifi")')= 'Download Wi-Fi CSV'
+        .btn-group(role='group')
+          button.btn.btn-primary.dropdown-toggle(type='button' data-bs-toggle='dropdown' aria-expanded='false')= 'Download CSV'
+          ul.dropdown-menu
+            li
+              a.dropdown-item(href='javascript:void(0);' onclick='fetchFiles("general")')= 'General CSV'
+            li
+              a.dropdown-item(href='javascript:void(0);' onclick='fetchFiles("cellular")')= 'Cellular CSV'
+            li
+              a.dropdown-item(href='javascript:void(0);' onclick='fetchFiles("wifi")')= 'Wi-Fi CSV'
       .col-12
         button.btn.btn-primary(type='button' onclick='fetchFiles("json")')= 'Download Raw JSON'
     .row
@@ -27,7 +37,7 @@ block content
             label(for='inputGpsEnd')= 'End coordinates'
             input#inputGpsEnd.form-control(type='text' placeholder='<latitude>, <longitude>' onkeydown='return (event.keyCode !== 13)')
           .col-md-3.col-sm-12
-            button.btn.btn-primary(type='button' onclick='selectOnMap()')= 'Select on map'
+            button.btn.btn-primary(type='button' onclick='showMap("selectCoord")')= 'Select on map'
 
       .col-lg-6.col-md-12.g-3
         h3.g-3= 'Date time selection'
@@ -77,15 +87,23 @@ block content
             .container-md
               .row
                 #heatmap
-              .row.py-3.align-items-end
-                .col-md.col-sm-12
-                  label(for='previewGpsStart')= 'Start coordinates'
-                  input#previewGpsStart.form-control(disabled readonly type='text')
-                .col-md.col-sm-12
-                  label(for='previewGpsEnd')= 'End coordinates'
-                  input#previewGpsEnd.form-control(disabled readonly type='text')
-                .col-md-3.col-sm-12
-                  button.btn.btn-primary(type='button' data-bs-dismiss='modal' aria-label='Close')= 'Select coordinates'
+              #coordBox.row.pt-3
+                .d-flex.align-items-end
+                  .p-2.flex-grow-1
+                    label(for='previewGpsStart')= 'Start coordinates'
+                    input#previewGpsStart.form-control(disabled readonly type='text')
+                  .p-2.flex-grow-1
+                    label(for='previewGpsEnd')= 'End coordinates'
+                    input#previewGpsEnd.form-control(disabled readonly type='text')
+                  .p-2
+                    button.btn.btn-primary(type='button' data-bs-dismiss='modal' aria-label='Close')= 'Select coordinates'
+              #vizBox.row.pt-3
+                .d-flex.align-items-end
+                  .p-2.flex-grow-1
+                    label(for='testInput')= 'Input query'
+                    input#testInput.form-control(type='text')
+                  .p-2
+                    button.btn.btn-primary(type='button' data-bs-dismiss='modal' aria-label='Close')= 'Submit'
 
   script(src='/javascripts/index.js')
   script(async defer src='https://maps.googleapis.com/maps/api/js?key=AIzaSyAcp-79zLw4hn8uA4HRJsWrRhvQQIp3ep4&loading=async&callback=initMap&libraries=visualization,drawing')
