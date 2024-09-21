@@ -153,9 +153,13 @@ function fetchFiles(mode) {
     }
   }
   if (startDt !== "" && endDt !== "" && zoneDt !== "") {
+    let startTimestamp = new Date(startDt);
+    let endTimestamp = new Date(endDt);
+    let startOffset = startTimestamp.getTimezoneOffset();
+    let endOffset = endTimestamp.getTimezoneOffset();
     filterObj.timestamp = {
-      start: new Date(startDt).toISOString().slice(0, -1) + zoneDt,
-      end: new Date(endDt).toISOString().slice(0, -1) + zoneDt
+      start: new Date(startTimestamp.getTime() - (startOffset * 60 * 1000)).toISOString().slice(0, -1) + zoneDt,
+      end: new Date(endTimestamp.getTime() - (endOffset * 60 * 1000)).toISOString().slice(0, -1) + zoneDt
     }
   }
 
