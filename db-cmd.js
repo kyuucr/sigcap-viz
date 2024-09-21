@@ -162,6 +162,6 @@ async function importZip(inputPath) {
     if (sco) {
       sco.done();
     }
-    console.log(`Import done ! Failure rate = ${(totalFailure / totalCount).toFixed(0)}%`)
+    console.log(`Import done ! Failure rate = ${(totalFailure / totalCount).toFixed(2)}%`)
   }
 }
