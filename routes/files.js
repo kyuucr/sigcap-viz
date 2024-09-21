@@ -28,11 +28,9 @@ const createFilter = function(params) {
     filterStr.push(`(properties->'location'->'longitude')::float >= ${lngStart}`)
     filterStr.push(`(properties->'location'->'longitude')::float <= ${lngEnd}`)
   }
-  if (params.timestamp) {
-    let startTimestamp = params.timestamp.start + params.timestamp.zone
-    let endTimestamp = params.timestamp.end + params.timestamp.zone
-    filterStr.push(`data_timestamp >= ${startTimestamp}::timestamp`)
-    filterStr.push(`data_timestamp < ${endTimestamp}::timestamp`)
+  if (params.timestamp && params.timestamp.start && params.timestamp.end) {
+    filterStr.push(`data_timestamp >= '${params.timestamp.start}'::timestamp`)
+    filterStr.push(`data_timestamp < '${params.timestamp.end}'::timestamp`)
   }
 
   let outStr = filterStr.join(" AND ")

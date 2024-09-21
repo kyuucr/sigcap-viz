@@ -34,10 +34,16 @@ block content
         .row.g-3.align-items-center
           .col-md.col-sm-12
             label(for='inputDtStart')= 'Start date and time'
-            input#inputDtStart.form-control(type='text' placeholder='Date and time' onkeydown='return (event.keyCode !== 13)')
+              #dtStart.input-group.log-event(data-td-target-input='nearest' data-td-target-toggle='nearest')
+                input#inputDtStart.form-control(type='text' placeholder='Date and time' data-td-target="#dtStart" onkeydown='return (event.keyCode !== 13)')
+                span.input-group-text(data-td-target='#dtStart' data-td-toggle='datetimepicker')
+                  i.bi.bi-calendar-week
           .col-md.col-sm-12
-            label(for='inputDtEnd')= 'End date and time'
-            input#inputDtEnd.form-control(type='text' placeholder='Date and time' onkeydown='return (event.keyCode !== 13)')
+            label(for='inputDtEnd')= 'Start date and time'
+              #dtEnd.input-group.log-event(data-td-target-input='nearest' data-td-target-toggle='nearest')
+                input#inputDtEnd.form-control(type='text' placeholder='Date and time' data-td-target="#dtEnd" onkeydown='return (event.keyCode !== 13)')
+                span.input-group-text(data-td-target='#dtEnd' data-td-toggle='datetimepicker')
+                  i.bi.bi-calendar-week
           .col-md-3.col-sm-12
             label(for='inputDtZone')= 'Timezone'
             input#inputDtZone.form-control(type='text' placeholder='-0400' onkeydown='return (event.keyCode !== 13)')

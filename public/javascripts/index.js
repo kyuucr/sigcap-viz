@@ -132,11 +132,12 @@ function clearFilter() {
 function fetchFiles(mode) {
   let startGps = document.getElementById("inputGpsStart").value
   let endGps = document.getElementById("inputGpsEnd").value
-  let startTimestamp = document.getElementById("inputDtStart").value + document.getElementById("inputDtZone").value
-  let endTimestamp = document.getElementById("inputDtEnd").value + document.getElementById("inputDtZone").value
+  let startDt = document.getElementById("inputDtStart").value
+  let endDt = document.getElementById("inputDtEnd").value
+  let zoneDt = document.getElementById("inputDtZone").value
   if (selectedFiles.length === 0
       && (startGps === "" || endGps === "")
-      && (startTimestamp === "" || endTimestamp === "")) {
+      && (startDt === "" || endDt === "" || zoneDt === "")) {
     window.alert("Please make at least one selection: GPS coordinates, date range, or files.")
     return
   }
@@ -151,10 +152,10 @@ function fetchFiles(mode) {
       end: endGps
     }
   }
-  if (startTimestamp !== "" && endTimestamp !== "") {
+  if (startDt !== "" && endDt !== "" && zoneDt !== "") {
     filterObj.timestamp = {
-      start: startTimestamp,
-      end: endTimestamp
+      start: new Date(startDt).toISOString().slice(0, -1) + zoneDt,
+      end: new Date(endDt).toISOString().slice(0, -1) + zoneDt
     }
   }
 
@@ -431,3 +432,30 @@ function initMap() {
 ////////////////////////
 
 fetchFileList()
+const dtOptions = {
+  display: {
+    icons: {
+      type: "icons",
+      time: "bi bi-clock",
+      date: "bi bi-calendar-week",
+      up: "bi bi-arrow-up",
+      down: "bi bi-arrow-down",
+      previous: "bi bi-chevron-left",
+      next: "bi bi-chevron-right",
+      today: "bi bi-calendar-check",
+      clear: "bi bi-trash",
+      close: "bi bi-x"
+    },
+    buttons: {
+      clear: true
+    },
+    theme: "light"
+  }
+}
+const dtPickerStart = new tempusDominus.TempusDominus(document.getElementById("inputDtStart"), dtOptions)
+const dtPickerEnd = new tempusDominus.TempusDominus(document.getElementById("inputDtEnd"), dtOptions)
+const localOffset = new Date().getTimezoneOffset()
+document.getElementById("inputDtZone").value =
+  `${localOffset > 0 ? "-" : "+"}`
+    + `${('00' + Math.abs(localOffset / 60)).slice(-2)}`
+    + `${('00' + Math.abs(localOffset % 60)).slice(-2)}`
