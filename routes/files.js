@@ -6,7 +6,7 @@ const csv = require("../libs/csv")
 const createFilter = function(params) {
   let filterStr = []
   if (params.files) {
-    filterStr.push(`fn = ANY(ARRAY${JSON.stringify(params.files).replaceAll("\"", "'")});`)
+    filterStr.push(`fn = ANY(ARRAY${JSON.stringify(params.files).replaceAll("\"", "'")})`)
   }
   if (params.gps) {
     let [ latStart, lngStart ] = params.gps.start.split(/[ ,]+/, 2).map(parseFloat)

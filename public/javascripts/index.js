@@ -1,9 +1,5 @@
 const selectedFiles = []
 let totalEntries = 0
-let startGps = ""
-let endGps = ""
-let startTimestamp = ""
-let endTimestamp = ""
 
 function downloadBlob(blob, name) {
   // Convert your blob into a Blob URL (a special url that points to an object in the browser's memory)
@@ -115,7 +111,7 @@ function fetchFileList(extras) {
     })
 }
 
-function filter() {
+function submitFilter() {
   let filter = document.getElementById("inputFilter")
   console.log(`Filter= ${filter.value}`)
   fetchFileList({
@@ -128,10 +124,19 @@ function filter() {
   })
 }
 
+function clearFilter() {
+  document.getElementById("inputFilter").value = ""
+  fetchFileList()
+}
+
 function fetchFiles(mode) {
+  let startGps = document.getElementById("inputGpsStart").value
+  let endGps = document.getElementById("inputGpsEnd").value
+  let startTimestamp = document.getElementById("inputDtStart").value + document.getElementById("inputDtZone").value
+  let endTimestamp = document.getElementById("inputDtEnd").value + document.getElementById("inputDtZone").value
   if (selectedFiles.length === 0
-    && (startGps === "" || endGps === "")
-    && (startTimestamp === "" || endTimestamp === "")) {
+      && (startGps === "" || endGps === "")
+      && (startTimestamp === "" || endTimestamp === "")) {
     window.alert("Please make at least one selection: GPS coordinates, date range, or files.")
     return
   }
@@ -410,11 +415,11 @@ function initMap() {
 
     console.log('Bounding Coordinates:');
     console.log('Southwest:', sw.lat(), sw.lng());
-    startGps = `${sw.lat()}, ${sw.lng()}`
+    let startGps = `${sw.lat()}, ${sw.lng()}`
     document.getElementById("inputGpsStart").value = startGps
     document.getElementById("previewGpsStart").value = startGps
     console.log('Northeast:', ne.lat(), ne.lng());
-    endGps = `${ne.lat()}, ${ne.lng()}`
+    let endGps = `${ne.lat()}, ${ne.lng()}`
     document.getElementById("inputGpsEnd").value = endGps
     document.getElementById("previewGpsEnd").value = endGps
   });

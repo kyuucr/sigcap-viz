@@ -44,12 +44,14 @@ block content
 
       .col-12.g-3
         h3= 'File selection'
-        .row.g-3.align-items-center.mb-2
-          .col-8
+        .d-flex.g-3.align-items-center.mb-2
+          .pe-2.flex-grow-1
             label.visually-hidden(for='inputFilter')= 'File filter'
             input#inputFilter.form-control(type='text' placeholder='File filter' onkeydown='if (event.keyCode == 13) { filter(); return false }')
-          .col-4
-            button.btn.btn-primary(type='button' onclick='filter()')= 'Submit filter'
+          .p-2
+            button.btn.btn-primary(type='button' onclick='submitFilter()')= 'Submit filter'
+          .p-2
+            button.btn.btn-primary(type='button' onclick='clearFilter()')= 'Clear filter'
         .overflow-auto(style='max-height: 70vh;')
           table.table.table-striped
             thead
@@ -72,10 +74,10 @@ block content
               .row.py-3.align-items-end
                 .col-md.col-sm-12
                   label(for='previewGpsStart')= 'Start coordinates'
-                  input#previewGpsStart.form-control(readonly type='text')
+                  input#previewGpsStart.form-control(disabled readonly type='text')
                 .col-md.col-sm-12
                   label(for='previewGpsEnd')= 'End coordinates'
-                  input#previewGpsEnd.form-control(readonly type='text')
+                  input#previewGpsEnd.form-control(disabled readonly type='text')
                 .col-md-3.col-sm-12
                   button.btn.btn-primary(type='button' data-bs-dismiss='modal' aria-label='Close')= 'Select coordinates'
 
