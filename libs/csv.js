@@ -31,8 +31,10 @@ const csv = {
       }
 
       // Get max NR cells
-      if (max_nr < entry.nr_info.length) {
-        max_nr = entry.nr_info.length
+      if (entry.nr_info) {
+        if (max_nr < entry.nr_info.length) {
+          max_nr = entry.nr_info.length
+        }
       }
 
       // Get max Wi-Fi APs
@@ -66,7 +68,7 @@ const csv = {
     for (let entry of sigcapJson) {
       // Overview
       let tempOut = {
-        "timestamp": entry.datetimeIso,
+        "timestamp": utils.getCleanDatetime(entry),
         "sigcap_version": entry.version,
         "android_version": entry.androidVersion,
         "is_debug": entry.isDebug,
@@ -161,6 +163,11 @@ const csv = {
       } else {
         tempOut["http_tput_mean_mbps"] = "NaN"
         tempOut["http_target"] = "N/A"
+      }
+
+      // Handle older version without nr_info
+      if (entry.nr_info === undefined) {
+        entry.nr_info = []
       }
 
       // Count of LTE cells
@@ -312,23 +319,23 @@ const csv = {
         if (lteIdx >= max_lte) {
           break;
         }
-        tempOut[`lte_other${lteIdx}_pci`] = utils.cleanSignal(ltePrimary.pci)
+        tempOut[`lte_other${lteIdx}_pci`] = utils.cleanSignal(lteEntry.pci)
         tempOut[`lte_other${lteIdx}_earfcn`] = utils.cleanSignal(
-            ltePrimary.earfcn)
+            lteEntry.earfcn)
         tempOut[`lte_other${lteIdx}_band*`] = cellHelper.earfcnToBand(
             tempOut[`lte_other${lteIdx}_earfcn`])
         tempOut[`lte_other${lteIdx}_freq_mhz*`] = cellHelper.earfcnToFreq(
             tempOut[`lte_other${lteIdx}_earfcn`])
         tempOut[`lte_other${lteIdx}_rsrp_dbm`] = utils.cleanSignal(
-            ltePrimary.rsrp)
+            lteEntry.rsrp)
         tempOut[`lte_other${lteIdx}_rsrq_db`] = utils.cleanSignal(
-            ltePrimary.rsrq)
+            lteEntry.rsrq)
         tempOut[`lte_other${lteIdx}_cqi`] = utils.cleanSignal(
-            ltePrimary.cqi)
+            lteEntry.cqi)
         tempOut[`lte_other${lteIdx}_rssi_dbm`] = utils.cleanSignal(
-            ltePrimary.rssi)
+            lteEntry.rssi)
         tempOut[`lte_other${lteIdx}_rssnr_db`] = utils.cleanSignal(
-            ltePrimary.rssnr)
+            lteEntry.rssnr)
         lteIdx += 1
       }
       while (lteIdx < max_lte) {
@@ -638,6 +645,7 @@ const csv = {
     }
 
     console.log(`# general entries= ${outputArr.length}`)
+    // console.log(outputArr)
     if (outputArr.length === 0) {
       return ""
     } else {
@@ -730,6 +738,11 @@ const csv = {
           outputArr.push(tempOut)
         }
         hasData = true
+      }
+
+      // Handle missing nr_info on older files
+      if (entry.nr_info === undefined) {
+        entry.nr_info = [];
       }
 
       // NR
@@ -838,7 +851,7 @@ const csv = {
         "altitude": entry.location.altitude,
         "hor_acc": entry.location.hor_acc,
         "ver_acc": entry.location.ver_acc,
-        "network_type*": utils.getNetworkType(entry),
+        "network_type*": utils.getActiveNetwork(entry),
       }
       timestamp = new Date(utils.getCleanDatetime(entry)).getTime()
 
