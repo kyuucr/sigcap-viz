@@ -127,14 +127,15 @@ const fp = {
     const inputs = zipArr.map(entry => {
       try {
         // Parse text to JSON
-        const parsed = JSON.parse(entry.textContent);
+        const sanitized = entry.textContent.replaceAll("\\u0000", "");
+        const parsed = JSON.parse(sanitized);
 
         // Extract additional attributes
         const uuid_dt = `${parsed.uuid ? parsed.uuid : "0"}-`
           + `${path.basename(entry.name, ".txt")}`;
         const timestamp = utils.getCleanDatetime(parsed);
 
-        return [fn, uuid_dt, timestamp, entry.textContent];
+        return [fn, uuid_dt, timestamp, sanitized];
       } catch (err) {
         console.error(`Error reading ${entry.name}`);
         console.error(err);
@@ -148,14 +149,16 @@ const fp = {
       const obj = await db.connect();
       sco = obj;
 
-      await Promise.allSettled(
-        inputs.map(val => {
-          return sco.none(
+      let results = await Promise.allSettled(
+        inputs.map(async val => {
+          return await sco.none(
             "INSERT INTO data(fn, uuid_dt, data_timestamp, properties) "
                 + "VALUES ($1, $2, $3, $4) ON CONFLICT (uuid_dt) DO NOTHING;",
               val)
         })
       );
+      let numFail = results.filter(val => val.status === "rejected").length;
+      console.log(`INSERT failure rate= ${(numFail / results.length).toFixed(2)}%`)
 
     } catch (error) {
       console.error(error);

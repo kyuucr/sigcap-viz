@@ -106,7 +106,7 @@ async function updateFbase () {
   const psqlFiles = await fp.psqlFetchFiles();
   let fbaseFiles = [];
   if (values["no-filter"]) {
-    console.log(`WARNING: fetching file list without filter !`)
+    console.log(`WARNING: fetching all files without filter !`)
     fbaseFiles = fbaseFiles.concat((await fp.fbaseListFiles())
       .filter(val => {
         return !psqlFiles.includes(path.basename(val.name, ".zip"));
@@ -156,5 +156,5 @@ async function updateFbase () {
     }
   }
 
-  console.log(`Import done ! Failure rate = ${(totalFailure / totalCount).toFixed(2)}%`)
+  console.log(`Import done ! Total zip read failure rate = ${(totalFailure / totalCount).toFixed(2)}%`)
 }
