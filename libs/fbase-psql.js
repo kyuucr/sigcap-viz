@@ -66,9 +66,13 @@ const fp = {
   psqlFetchFiles: async function (filter) {
     let filterStr = "";
     if (filter) {
-      filterStr = `WHERE fn LIKE '%${filter}%' `;
+      filterStr = ` WHERE fn LIKE '%${filter}%'`;
     }
-    return (await db.any(`SELECT DISTINCT fn FROM data ${filterStr}ORDER BY fn DESC;`))
+    return (await db.any(
+        `SELECT fn, data_timestamp FROM (`
+        + `SELECT DISTINCT ON (fn) fn, data_timestamp FROM data${filterStr}`
+        + `) AS subquery ORDER BY data_timestamp DESC;`
+      ))
       .map(val => val.fn);
   },
 
