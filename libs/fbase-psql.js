@@ -147,8 +147,9 @@ const fp = {
       }
     }).filter(val => val.length === 4);
 
-    // Run insert queries
+    // Run INSERT queries
     let sco; // shared connection object
+    let numFail = 0;
     try {
       const obj = await db.connect();
       sco = obj;
@@ -163,16 +164,18 @@ const fp = {
         })
       );
       // console.log(results.map(val => [val.status, val.reason ? val.reason.message: "none", val.value]))
-      let numFail = results.filter(val => val.status === "rejected").length;
+      numFail = results.filter(val => val.status === "rejected").length;
       console.log(`INSERT failure rate= ${(numFail / results.length * 100).toFixed(2)}%`)
 
     } catch (error) {
       console.error(error);
+      return zipArr.length;
     } finally {
       // release the connection
       if (sco) {
         sco.done();
       }
+      return numFail;
     }
   },
 

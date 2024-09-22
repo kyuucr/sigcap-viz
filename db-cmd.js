@@ -81,7 +81,7 @@ async function importZip(inputPath) {
     zipFilesFound = await utils.rglob(inputPath, /\.zip$/);
   }
   let totalCount = zipFilesFound.length;
-  let totalFailure = 0;
+  let totalFail = 0;
   console.log(`# of zipfiles= ${zipFilesFound.length}`);
 
   let fileIdx = 1;
@@ -91,14 +91,17 @@ async function importZip(inputPath) {
 
     const extracted = await utils.readZip(zipFilePath);
     if (extracted.length === 0) {
-      totalFailure += 1;
+      totalFail += 1;
     } else {
       console.log(`# of zip entries= ${extracted.length}`);
-      await fp.psqlInsertData(fn, extracted);
+      let numInsertFail = await fp.psqlInsertData(fn, extracted);
+      if (numInsertFail > 0) {
+        totalFail += 1;
+      }
     }
     fileIdx += 1;
   }
-  console.log(`Import done ! Failure rate = ${(totalFailure / totalCount).toFixed(2)}%`)
+  console.log(`Import done ! Total failure rate = ${(totalFail / totalCount * 100).toFixed(2)}%`)
 }
 
 async function updateFbase () {
@@ -137,7 +140,7 @@ async function updateFbase () {
   console.log(`# of zipfiles= ${fbaseFiles.length}`);
 
   let totalCount = fbaseFiles.length;
-  let totalFailure = 0;
+  let totalFail = 0;
   if (fbaseFiles.length > 0) {
     const response = await fp.fbaseDownload(fbaseFiles);
     let fileIdx = 1
@@ -147,14 +150,17 @@ async function updateFbase () {
 
       const extracted = await utils.readZip(zipFileBuffer);
       if (extracted.length === 0) {
-        totalFailure += 1;
+        totalFail += 1;
       } else {
         console.log(`# of zip entries= ${extracted.length}`);
-        await fp.psqlInsertData(fn, extracted);
+        let numInsertFail = await fp.psqlInsertData(fn, extracted);
+        if (numInsertFail > 0) {
+          totalFail += 1;
+        }
       }
       fileIdx += 1;
     }
   }
 
-  console.log(`Import done ! Total zip read failure rate = ${(totalFailure / totalCount * 100).toFixed(2)}%`)
+  console.log(`Import done ! Total failure rate = ${(totalFail / totalCount * 100).toFixed(2)}%`);
 }
