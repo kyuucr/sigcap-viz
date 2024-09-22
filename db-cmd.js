@@ -7,6 +7,9 @@ const utils = require("./libs/utils");
 const options = {
   "force": {
     type: "boolean",
+  },
+  "no-filter": {
+    type: "boolean",
   }
 }
 
@@ -99,26 +102,36 @@ async function importZip(inputPath) {
 }
 
 async function updateFbase () {
-  // Get last timestamp to filter firebase query
-  const lastTimestamp = await fp.psqlLastTimestamp();
-  console.log(`Last timestamp= ${lastTimestamp}`);
-
-  // Use last and this month only
-  const fbaseFiltersBase = lastTimestamp.getFullYear() + "/"
-  const fbaseFilters = [
-    fbaseFiltersBase + (lastTimestamp.getMonth()).toString().padStart(2, "0"),
-    fbaseFiltersBase + (lastTimestamp.getMonth() + 1).toString().padStart(2, "0")
-  ];
-  console.log(`Using filters= ${fbaseFilters.join(", ")}`);
-
   // Fetch postgresql and firebase files and compare
   const psqlFiles = await fp.psqlFetchFiles();
   let fbaseFiles = [];
-  for (let filter of fbaseFilters) {
-    fbaseFiles = fbaseFiles.concat((await fp.fbaseListFiles(filter))
+  if (values["no-filter"]) {
+    console.log(`WARNING: fetching file list without filter !`)
+    fbaseFiles = fbaseFiles.concat((await fp.fbaseListFiles())
       .filter(val => {
         return !psqlFiles.includes(path.basename(val.name, ".zip"))
-      }));
+      })
+    );
+  } else {
+    // Get last timestamp to filter firebase query
+    const lastTimestamp = await fp.psqlLastTimestamp();
+    console.log(`Last timestamp= ${lastTimestamp}`);
+
+    // Use last and this month only
+    const fbaseFiltersBase = lastTimestamp.getFullYear() + "/"
+    const fbaseFilters = [
+      fbaseFiltersBase + (lastTimestamp.getMonth()).toString().padStart(2, "0"),
+      fbaseFiltersBase + (lastTimestamp.getMonth() + 1).toString().padStart(2, "0")
+    ];
+    console.log(`Using filters= ${fbaseFilters.join(", ")}`);
+
+    for (let filter of fbaseFilters) {
+      fbaseFiles = fbaseFiles.concat((await fp.fbaseListFiles(filter))
+        .filter(val => {
+          return !psqlFiles.includes(path.basename(val.name, ".zip"))
+        })
+      );
+    }
   }
   // console.log(fbaseFiles.map(val => val.name).join("\n"));
   console.log(`# of zipfiles= ${fbaseFiles.length}`);
