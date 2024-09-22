@@ -6,6 +6,7 @@ const path = require("path");
 const db = require("./db");
 const utils = require("./utils");
 
+const { TransferManager } = require('@google-cloud/storage');
 const { initializeApp, cert } = require("firebase-admin/app");
 const { getStorage } = require("firebase-admin/storage");
 const serviceAccount = require("../auth/laa-cell-map-a3e01842e98c.json");
@@ -54,6 +55,13 @@ const createFilter = function(params) {
 
 
 const fp = {
+
+  psqlLastTimestamp: async function () {
+    return await db.one(
+      `SELECT data_timestamp FROM data ORDER BY fn DESC LIMIT 1;`,
+      [],
+      c => new Date(c.data_timestamp));
+  },
 
   psqlFetchFiles: async function (filter) {
     let filterStr = "";
@@ -159,9 +167,22 @@ const fp = {
     }
   },
 
-  fbaseListFiles: function () {
-    let bucket = getStorage().bucket();
-    return (await bucket.getFiles())[0]
+  fbaseListFiles: async function (filterStr) {
+    if (filterStr && !filterStr.endsWith("/")) {
+      filterStr += "/";
+    }
+    const bucket = getStorage().bucket();
+    const [ data ] = (await bucket.getFiles({
+      matchGlob: `dataset/${filterStr}*.zip`
+    }));
+    return data;
+  },
+
+  fbaseDownload: async function (files) {
+    const transferManager = new TransferManager(getStorage().bucket());
+    const response = (await transferManager.downloadManyFiles(files))
+      .map(val => val[0]);
+    return response;
   }
 
 }
