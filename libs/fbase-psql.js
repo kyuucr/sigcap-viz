@@ -155,12 +155,14 @@ const fp = {
 
       let results = await Promise.allSettled(
         inputs.map(async val => {
-          return await sco.none(
+          return await sco.one(
             "INSERT INTO data(fn, uuid_dt, data_timestamp, properties) "
-                + "VALUES ($1, $2, $3, $4) ON CONFLICT (uuid_dt) DO NOTHING;",
-              val)
+              + "VALUES ($1, $2, $3, $4) ON CONFLICT (uuid_dt) DO NOTHING "
+              + "RETURNING id;",
+            val)
         })
       );
+      // console.log(results.map(val => [val.status, val.reason ? val.reason.message: "none", val.value]))
       let numFail = results.filter(val => val.status === "rejected").length;
       console.log(`INSERT failure rate= ${(numFail / results.length * 100).toFixed(2)}%`)
 
