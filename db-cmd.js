@@ -156,5 +156,5 @@ async function updateFbase () {
     }
   }
 
-  console.log(`Import done ! Total zip read failure rate = ${(totalFailure / totalCount).toFixed(2)}%`)
+  console.log(`Import done ! Total zip read failure rate = ${(totalFailure / totalCount * 100).toFixed(2)}%`)
 }

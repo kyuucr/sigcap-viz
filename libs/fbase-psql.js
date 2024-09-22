@@ -158,7 +158,7 @@ const fp = {
         })
       );
       let numFail = results.filter(val => val.status === "rejected").length;
-      console.log(`INSERT failure rate= ${(numFail / results.length).toFixed(2)}%`)
+      console.log(`INSERT failure rate= ${(numFail / results.length * 100).toFixed(2)}%`)
 
     } catch (error) {
       console.error(error);
