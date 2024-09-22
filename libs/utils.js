@@ -1,5 +1,6 @@
-const fs = require('fs');
-const path = require('path');
+const AdmZip = require("adm-zip")
+const fs = require("fs");
+const path = require("path");
 
 const usualCarriers = [
   "AT&T",
@@ -159,6 +160,25 @@ const utils = {
 
     return matchingFiles;
   },
+
+  readZip: async function (zipFilePath) {
+    try {
+      const zip = new AdmZip(zipFilePath);
+      const zipEntries = zip.getEntries();
+
+      return zipEntries.filter(zipEntry => !zipEntry.isDirectory)
+        .map(zipEntry => {
+          return {
+            name: zipEntry.entryName,
+            textContent: zip.readAsText(zipEntry)
+          };
+        });
+    } catch (err) {
+      console.error(`Error reading ${path.basename(zipFilePath, ".zip")} !`);
+      console.error(err);
+      return [];
+    }
+  }
 }
 
 module.exports = utils
