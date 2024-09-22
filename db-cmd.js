@@ -109,7 +109,7 @@ async function updateFbase () {
     console.log(`WARNING: fetching file list without filter !`)
     fbaseFiles = fbaseFiles.concat((await fp.fbaseListFiles())
       .filter(val => {
-        return !psqlFiles.includes(path.basename(val.name, ".zip"))
+        return !psqlFiles.includes(path.basename(val.name, ".zip"));
       })
     );
   } else {

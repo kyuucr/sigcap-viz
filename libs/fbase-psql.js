@@ -167,13 +167,13 @@ const fp = {
     }
   },
 
-  fbaseListFiles: async function (filterStr = "") {
-    if (filterStr !== "" && !filterStr.endsWith("/")) {
+  fbaseListFiles: async function (filterStr = "*/*/") {
+    if (!filterStr.endsWith("/")) {
       filterStr += "/";
     }
     const bucket = getStorage().bucket();
     const [ data ] = (await bucket.getFiles({
-      prefix: `dataset/${filterStr}`
+      matchGlob: `dataset/${filterStr}*.zip`
     }));
     return data;
   },
