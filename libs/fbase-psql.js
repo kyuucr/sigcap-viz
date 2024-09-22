@@ -58,7 +58,7 @@ const fp = {
 
   psqlLastTimestamp: async function () {
     return await db.one(
-      `SELECT data_timestamp FROM data ORDER BY fn DESC LIMIT 1;`,
+      `SELECT data_timestamp FROM data ORDER BY data_timestamp DESC LIMIT 1;`,
       [],
       c => new Date(c.data_timestamp));
   },
