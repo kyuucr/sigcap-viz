@@ -174,7 +174,7 @@ const utils = {
           };
         });
     } catch (err) {
-      console.error(`Error reading ${path.basename(zipFilePath, ".zip")} !`);
+      console.error(`Error reading ${(typeof zipFilePath === "string") ? path.basename(zipFilePath, ".zip") : "buffered zipfile"} !`);
       console.error(err);
       return [];
     }
