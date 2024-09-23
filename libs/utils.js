@@ -54,6 +54,13 @@ const utils = {
     return op
   },
 
+  getOpList: function (sigcapArr) {
+    let ops = sigcapArr.map(val => this.getCleanOp(val));
+    ops = [...new Set(ops)].sort((a, b) => a.localeCompare(b));
+
+    return ops;
+  },
+
   getActiveNetwork: function(data) {
     // We don't trust network type from the API
     let hasNr = data.nr_info && (data.nr_info.length > 0)
