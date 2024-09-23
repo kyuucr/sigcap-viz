@@ -654,6 +654,15 @@ const csv = {
   },
 
   cellular: function(sigcapJson) {
+    let outputArr = this.cellularJson(sigcapJson);
+    if (outputArr.length === 0) {
+      return "";
+    } else {
+      return toCsv(outputArr);
+    }
+  },
+
+  cellularJson: function(sigcapJson) {
     console.log(`Processing cellular CSV... # data= ${sigcapJson.length}`)
 
     outputArr = []
@@ -705,11 +714,12 @@ const csv = {
           }
         }
 
-        // Skip entry with the same timestamp
-        if (deviceTimedata[entry.uuid].includes(actualTimestamp)) {
+        // Skip entry with the same timestamp, pci, and earfcn
+        let identifier = `${cellEntry.pci}${cellEntry.earfcn}${actualTimestamp}`
+        if (deviceTimedata[entry.uuid].includes(identifier)) {
           continue
         }
-        deviceTimedata[entry.uuid].push(actualTimestamp)
+        deviceTimedata[entry.uuid].push(identifier)
 
         let isPrimary = (cellEntry.width > 0 || cellEntry.registered)
 
@@ -758,11 +768,12 @@ const csv = {
           }
         }
 
-        // Skip entry with the same timestamp
-        if (deviceTimedata[entry.uuid].includes(actualTimestamp)) {
+        // Skip entry with the same timestamp, pci, and nrarfcn
+        let identifier = `${cellEntry.nrPci}${cellEntry.nrarfcn}${actualTimestamp}`
+        if (deviceTimedata[entry.uuid].includes(identifier)) {
           continue
         }
-        deviceTimedata[entry.uuid].push(actualTimestamp)
+        deviceTimedata[entry.uuid].push(identifier)
 
         let isPrimary = (cellEntry.isSignalStrAPI === false && cellEntry.status === "primary")
 
@@ -820,15 +831,21 @@ const csv = {
       }
     }
 
-    console.log(`# cellular entries= ${outputArr.length}`)
+    console.log(`# cellular entries= ${outputArr.length}`);
+    return outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp));
+  },
+
+
+  wifi: function(sigcapJson) {
+    let outputArr = this.wifiJson(sigcapJson);
     if (outputArr.length === 0) {
-      return ""
+      return "";
     } else {
-      return toCsv(outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp)))
+      return toCsv(outputArr);
     }
   },
 
-  wifi: function(sigcapJson) {
+  wifiJson: function(sigcapJson) {
     console.log(`Processing Wi-Fi CSV... # data= ${sigcapJson.length}`)
 
     outputArr = []
@@ -897,11 +914,12 @@ const csv = {
           }
         }
 
-        // Skip entry with the same timestamp
-        if (deviceTimedata[entry.uuid].includes(actualTimestamp)) {
+        // Skip entry with the same timestamp and bssid
+        let identifier = `${wifiEntry.bssid}${actualTimestamp}`
+        if (deviceTimedata[entry.uuid].includes(identifier)) {
           continue
         }
-        deviceTimedata[entry.uuid].push(actualTimestamp)
+        deviceTimedata[entry.uuid].push(identifier)
 
         // Populate single data point
         tempOut = {
@@ -958,12 +976,8 @@ const csv = {
       }
     }
 
-    console.log(`# Wi-Fi entries= ${outputArr.length}`)
-    if (outputArr.length === 0) {
-      return ""
-    } else {
-      return toCsv(outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp)))
-    }
+    console.log(`# Wi-Fi entries= ${outputArr.length}`);
+    return outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp));
   }
 }
 
