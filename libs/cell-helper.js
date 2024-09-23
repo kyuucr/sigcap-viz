@@ -319,7 +319,33 @@ const cellHelper = {
         } else {
             return "lowband";
         }
-    }
+    },
+
+    getBandList: function (sigcapArr, region = cellHelper.REGION.GLOBAL) {
+        let allBands = sigcapArr.map(entry => {
+            let bands = [];
+            bands = bands.concat(entry.cell_info.map(cell => {
+                return cellHelper.earfcnToBand(cell.earfcn);
+            }));
+            if (entry.nr_info) {
+                bands = bands.concat(entry.nr_info.map(cell => {
+                    return cellHelper.nrarfcnToBand(cell.nrarfcn, region);
+                }));
+            }
+            return bands;
+        })
+        .flat(Infinity)
+        .filter(val => val !== "N/A");
+        // Filter to distinct values
+        allBands = [...new Set(allBands)];
+
+        return {
+            lte: allBands.filter(val => typeof val === "number").toSorted(
+                (a, b) => a - b),
+            nr: allBands.filter(val => typeof val === "string").toSorted(
+                (a, b) => parseInt(a.slice(1)) - parseInt(b.slice(1)))
+        }
+    },
 
 };
 
