@@ -1,7 +1,10 @@
 const express = require("express")
 const router = express.Router()
+const cellHelper = require("../libs/cell-helper")
 const csv = require("../libs/csv")
 const fp = require("../libs/fbase-psql")
+const mapping = require("../libs/mapping")
+const utils = require("../libs/utils")
 
 
 /* GET users listing. */
@@ -21,37 +24,59 @@ router.route("/")
 
       switch (command) {
         case ("general"): {
-          let out = csv.general(data)
+          let out = csv.general(data);
           if (out === "") {
-            res.status(404).send("No data within the selected query !")
+            res.status(404).send("No data within the selected query !");
           } else {
-            res.send(out)
+            res.send(out);
           }
           break;
         }
         case ("cellular"): {
-          let out = csv.cellular(data)
+          let out = csv.cellular(data);
           if (out === "") {
-            res.status(404).send("No data within the selected query !")
+            res.status(404).send("No data within the selected query !");
           } else {
-            res.send(out)
+            res.send(out);
           }
           break;
         }
         case ("wifi"): {
-          let out = csv.wifi(data)
+          let out = csv.wifi(data);
           if (out === "") {
-            res.status(404).send("No data within the selected query !")
+            res.status(404).send("No data within the selected query !");
           } else {
-            res.send(out)
+            res.send(out);
           }
           break;
         }
         case ("json"): {
           if (data.length === 0) {
-            res.status(404).send("No data within the selected query !")
+            res.status(404).send("No data within the selected query !");
           } else {
-            res.json(data)
+            res.json(data);
+          }
+          break;
+        }
+        case ("metaMap"): {
+          if (data.length === 0) {
+            res.status(404).send("No data within the selected query !");
+          } else {
+            let boundary = mapping.getBoundary(data);
+            res.json({
+              boundary: boundary,
+              bandList: cellHelper.getBandList(data, cellHelper.REGION.NAR),
+              opList: utils.getOpList(data)
+            });
+          }
+          break;
+        }
+        case ("cellularMap"): {
+          if (data.length === 0) {
+            res.status(404).send("No data within the selected query !");
+          } else {
+            let geojson = mapping.cellular(data, params);
+            res.json(geojson);
           }
           break;
         }

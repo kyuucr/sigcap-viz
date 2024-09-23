@@ -125,11 +125,11 @@ const utils = {
 
   cleanSignal: function(signal) {
     signal = this.cleanNumeric(signal);
-    return (signal === 2147483647 || signal === 9223372036854775807) ? NaN : signal;
+    return (signal === 2147483647 || signal === 9223372036854775807) ? "NaN" : signal;
   },
 
   cleanNumeric: function(number) {
-    if (number === undefined) return NaN;
+    if (number === undefined) return "NaN";
     if (typeof number !== 'number') {
       try {
         if (number.includes(".")) {
@@ -138,7 +138,7 @@ const utils = {
           number = parseInt(number);
         }
       } catch (err) {
-        return NaN;
+        return "NaN";
       }
     }
     return number;

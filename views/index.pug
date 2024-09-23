@@ -98,12 +98,29 @@ block content
                   .p-2
                     button.btn.btn-primary(type='button' data-bs-dismiss='modal' aria-label='Close')= 'Select coordinates'
               #vizBox.row.pt-3
-                .d-flex.align-items-end
-                  .p-2.flex-grow-1
-                    label(for='testInput')= 'Input query'
-                    input#testInput.form-control(type='text')
+                .d-flex.align-items-end.justify-content-center
                   .p-2
-                    button.btn.btn-primary(type='button' data-bs-dismiss='modal' aria-label='Close')= 'Submit'
+                    label(for='opSelect')= 'Operator'
+                    select#opSelect.form-control.form-select(aria-label='Operator')
+                  .p-2
+                    label(for='techSelect')= 'Technology'
+                    #techSelect.form-control.btn-group.p-0(role='group' aria-label='Technology')
+                      input#techRadioLte.btn-check(type='radio' name='techRadio' value='lte' autocomplete='off' checked)
+                      label.btn.btn-outline-primary(for='techRadioLte')= 'LTE'
+                      input#techRadioNr.btn-check(type='radio' name='techRadio' value='nr' autocomplete='off')
+                      label.btn.btn-outline-primary(for='techRadioNr')= 'NR'
+                  .p-2
+                    label(for='bandSelect')= 'Band'
+                    select#bandSelect.form-control.form-select(aria-label='Band')
+                  .p-2
+                    label(for='statSelect')= 'Statistic'
+                    #statSelect.form-control.btn-group.p-0(role='group' aria-label='Statistic')
+                      input#statRadioMax.btn-check(type='radio' name='statRadio' value='max' autocomplete='off' checked)
+                      label.btn.btn-outline-primary(for='statRadioMax')= 'Max'
+                      input#statRadioMean.btn-check(type='radio' name='statRadio' value='mean' autocomplete='off')
+                      label.btn.btn-outline-primary(for='statRadioMean')= 'Mean'
+                  .p-2
+                    button.btn.btn-primary(type='button' onclick='submitMapFilter()')= 'Submit'
 
   script(src='/javascripts/index.js')
   script(async defer src='https://maps.googleapis.com/maps/api/js?key=AIzaSyAcp-79zLw4hn8uA4HRJsWrRhvQQIp3ep4&loading=async&callback=initMap&libraries=visualization,drawing')
