@@ -138,7 +138,7 @@ const utils = {
   },
 
   cleanNumeric: function(number) {
-    if (number === undefined) return "NaN";
+    if (number === undefined || number === null) return "NaN";
     if (typeof number !== 'number') {
       try {
         if (number.includes(".")) {
