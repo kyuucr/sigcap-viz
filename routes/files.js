@@ -5,6 +5,7 @@ const csv = require("../libs/csv")
 const fp = require("../libs/fbase-psql")
 const mapping = require("../libs/mapping")
 const utils = require("../libs/utils")
+const { parallelProcess } = require("../libs/parallel");
 
 
 /* GET users listing. */
@@ -30,6 +31,28 @@ router.route("/")
       }
 
     } else if (command === "cellular") {
+      const data = await fp.psqlFetchJson(params);
+      console.log(`# of data= ${data.length}`);
+      if (data.length === 0) {
+        res.status(404).send("No data within the selected query !");
+      } else {
+        let cellularJson = csv.cellularJson(data);
+        console.log(`# cellular entries= ${cellularJson.length}`);
+        res.send(csv.toCsv(cellularJson));
+      }
+
+    } else if (command === "cellularParallel") {
+      const data = await fp.psqlFetchJson(params);
+      console.log(`# of data= ${data.length}`);
+      if (data.length === 0) {
+        res.status(404).send("No data within the selected query !");
+      } else {
+        let cellularJson = await parallelProcess(data, "cellular", 16);
+        console.log(`# cellular entries= ${cellularJson.length}`);
+        res.send(csv.toCsv(cellularJson));
+      }
+
+    } else if (command === "cellularPsql") {
       const data = await Promise.allSettled([
         fp.psqlFetchCellInfoJson(params, csv.psqlToCellJson),
         fp.psqlFetchNrInfoJson(params, csv.psqlToNrJson)
@@ -49,11 +72,33 @@ router.route("/")
 
     } else if (command === "wifi") {
       const data = await fp.psqlFetchJson(params);
-      let out = csv.wifi(data);
-      if (out === "") {
+      console.log(`# of data= ${data.length}`);
+      if (data.length === 0) {
         res.status(404).send("No data within the selected query !");
       } else {
-        res.send(out);
+        let wifiJson = csv.wifiJson(data);
+        console.log(`# Wi-Fi entries= ${wifiJson.length}`);
+        res.send(csv.toCsv(wifiJson));
+      }
+
+    } else if (command === "wifiParallel") {
+      const data = await fp.psqlFetchJson(params);
+      console.log(`# of data= ${data.length}`);
+      if (data.length === 0) {
+        res.status(404).send("No data within the selected query !");
+      } else {
+        let wifiJson = await parallelProcess(data, "wifi", 16);
+        console.log(`# Wi-Fi entries= ${wifiJson.length}`);
+        res.send(csv.toCsv(wifiJson));
+      }
+
+    } else if (command === "wifiPsql") {
+      const data = await fp.psqlFetchWifiInfoJson(params, csv.psqlToWifiJson);
+      console.log(`# of Wi-Fi data= ${data.length}`);
+      if (data.length === 0) {
+        res.status(404).send("No data within the selected query !");
+      } else {
+        res.send(csv.toCsv(data));
       }
 
     } else if (command === "json") {

@@ -269,6 +269,152 @@ WHERE ${createFilter(params)};`;
     return await db.map(nrSql, [], transformer);
   },
 
+  psqlFetchWifiInfoJson: async function (params, transformer) {
+const wifiSql =
+`SELECT
+  data_timestamp,
+  (properties->'version') AS "version",
+  (properties->'androidVersion') AS "androidVersion",
+  (properties->'isDebug') AS "isDebug",
+  (properties->'uuid') AS "uuid",
+  (properties->'deviceName') AS "deviceName",
+  (properties->'location'->'latitude') AS "latitude",
+  (properties->'location'->'longitude') AS "longitude",
+  (properties->'location'->'altitude') AS "altitude",
+  (properties->'location'->'hor_acc') AS "hor_acc",
+  (properties->'location'->'ver_acc') AS "ver_acc",
+  (properties->'opName') AS "opName",
+  (properties->'simName') AS "simName",
+  (properties->'carrierName') AS "carrierName",
+  (properties->'networkType') AS "networkType",
+  (properties->'overrideNetworkType') AS "overrideNetworkType",
+  (properties->'phoneType') AS "phoneType",
+  (properties->'nrStatus') AS "nrStatus",
+  (properties->'nrAvailable') AS "nrAvailable",
+  (properties->'dcNrRestricted') AS "dcNrRestricted",
+  (properties->'enDcAvailable') AS "enDcAvailable",
+  (properties->'nrFrequencyRange') AS "nrFrequencyRange",
+  (properties->'cellBandwidths') AS "cellBandwidths",
+  (properties->'usingCA') AS "usingCA",
+  (jsonb_array_length(properties->'cell_info') > 0)::boolean AS "hasLte",
+  (jsonb_array_length(properties->'nr_info') > 0)::boolean AS "hasNr",
+  ((properties->'nr_info'->0->>'status') = 'primary')::boolean AS "hasPrimaryNr",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."timestampMs"
+  END AS "timestampMs",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."timestampDeltaMs"
+  END AS "timestampDeltaMs",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."ssid"
+  END AS "ssid",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."bssid"
+  END AS "bssid",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."primaryFreq"
+  END AS "primaryFreq",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."centerFreq0"
+  END AS "centerFreq0",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."centerFreq1"
+  END AS "centerFreq1",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."width"
+  END AS "width",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."rssi"
+  END AS "rssi",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."standard"
+  END AS "standard",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."connected"
+  END AS "connected",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."linkSpeed"
+  END AS "linkSpeed",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."txLinkSpeed"
+  END AS "txLinkSpeed",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."rxLinkSpeed"
+  END AS "rxLinkSpeed",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."maxSupportedTxLinkSpeed"
+  END AS "maxSupportedTxLinkSpeed",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."maxSupportedRxLinkSpeed"
+  END AS "maxSupportedRxLinkSpeed",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."capabilities"
+  END AS "capabilities",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."staCount"
+  END AS "staCount",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."chUtil"
+  END AS "chUtil",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."txPower"
+  END AS "txPower",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."linkMargin"
+  END AS "linkMargin",
+  CASE
+    WHEN jsonb_array_length(properties->'wifi_info') = 0 THEN NULL
+    ELSE a."apName"
+  END AS "apName"
+FROM data
+LEFT JOIN LATERAL (SELECT
+  jsonb_array_elements(properties->'wifi_info')->'timestampMs' AS "timestampMs",
+  jsonb_array_elements(properties->'wifi_info')->'timestampDeltaMs' AS "timestampDeltaMs",
+  jsonb_array_elements(properties->'wifi_info')->'ssid' AS "ssid",
+  jsonb_array_elements(properties->'wifi_info')->'bssid' AS "bssid",
+  jsonb_array_elements(properties->'wifi_info')->'primaryFreq' AS "primaryFreq",
+  jsonb_array_elements(properties->'wifi_info')->'centerFreq0' AS "centerFreq0",
+  jsonb_array_elements(properties->'wifi_info')->'centerFreq1' AS "centerFreq1",
+  jsonb_array_elements(properties->'wifi_info')->'width' AS "width",
+  jsonb_array_elements(properties->'wifi_info')->'rssi' AS "rssi",
+  jsonb_array_elements(properties->'wifi_info')->'standard' AS "standard",
+  jsonb_array_elements(properties->'wifi_info')->'connected' AS "connected",
+  jsonb_array_elements(properties->'wifi_info')->'linkSpeed' AS "linkSpeed",
+  jsonb_array_elements(properties->'wifi_info')->'txLinkSpeed' AS "txLinkSpeed",
+  jsonb_array_elements(properties->'wifi_info')->'rxLinkSpeed' AS "rxLinkSpeed",
+  jsonb_array_elements(properties->'wifi_info')->'maxSupportedTxLinkSpeed' AS "maxSupportedTxLinkSpeed",
+  jsonb_array_elements(properties->'wifi_info')->'maxSupportedRxLinkSpeed' AS "maxSupportedRxLinkSpeed",
+  jsonb_array_elements(properties->'wifi_info')->'capabilities' AS "capabilities",
+  jsonb_array_elements(properties->'wifi_info')->'staCount' AS "staCount",
+  jsonb_array_elements(properties->'wifi_info')->'chUtil' AS "chUtil",
+  jsonb_array_elements(properties->'wifi_info')->'txPower' AS "txPower",
+  jsonb_array_elements(properties->'wifi_info')->'linkMargin' AS "linkMargin",
+  jsonb_array_elements(properties->'wifi_info')->'apName' AS "apName") a ON TRUE
+WHERE ${createFilter(params)};`;
+    return await db.map(wifiSql, [], transformer);
+  },
+
   psqlFetchTableNames: async function () {
     return (await db.any(`SELECT table_name `
         + `FROM information_schema.tables WHERE table_schema = 'public';`))

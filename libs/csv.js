@@ -792,149 +792,359 @@ const csv = {
     };
   },
 
-  wifi: function(sigcapJson) {
-    let outputArr = this.wifiJson(sigcapJson);
-    if (outputArr.length === 0) {
-      return "";
-    } else {
-      return this.toCsv(outputArr);
+  psqlToWifiJson: function (entry) {
+    let actualTimestamp = entry.timestampMs;
+    if (actualTimestamp === null) {
+      if (entry.timestampDeltaMs !== null) {
+        actualTimestamp = entry.data_timestamp.getTime() - entry.timestampDeltaMs;
+      } else {
+        actualTimestamp = entry.data_timestamp.getTime();
+      }
+    }
+    let primaryFreq = utils.cleanSignal(entry.primaryFreq);
+    let centerFreq0 = utils.cleanSignal(entry.centerFreq0);
+    let centerFreq1 = utils.cleanSignal(entry.centerFreq1);
+    let width = utils.cleanSignal(entry.width);
+
+    return {
+      "timestamp": utils.printDateTime(actualTimestamp),
+      "sigcap_version": entry.version,
+      "android_version": entry.androidVersion,
+      "is_debug": entry.isDebug,
+      "uuid": entry.uuid,
+      "device_name": entry.deviceName,
+      "latitude": entry.latitude,
+      "longitude": entry.longitude,
+      "altitude": entry.altitude,
+      "hor_acc": entry.hor_acc,
+      "ver_acc": entry.ver_acc,
+      "operator": utils.getCleanOp(entry),
+      "network_type*": utils.getActiveNetwork(entry),
+      "usingCA": entry.usingCA,
+      "ssid": entry.ssid ? `"${entry.ssid}"` : "",
+      "bssid": entry.bssid,
+      "primary_freq_mhz": primaryFreq,
+      "center_freq_mhz": centerFreq1 ? centerFreq1 : centerFreq0,
+      "width_mhz": width,
+      "channel_num": wifiHelper.freqWidthToChannelNum(primaryFreq, width),
+      "primary_ch_num": wifiHelper.freqWidthToChannelNum(primaryFreq, 20),
+      "rssi_dbm": utils.cleanSignal(entry.rssi),
+      "standard": entry.standard,
+      "connected": entry.connected,
+      "link_speed": utils.cleanSignal(entry.linkSpeed),
+      "tx_link_speed": utils.cleanSignal(entry.txLinkSpeed),
+      "rx_link_speed": utils.cleanSignal(entry.rxLinkSpeed),
+      "max_supported_tx_link_speed": utils.cleanSignal(entry.maxSupportedTxLinkSpeed),
+      "max_supported_rx_link_speed": utils.cleanSignal(entry.maxSupportedRxLinkSpeed),
+      "capabilities": entry.capabilities,
+      "sta_count": (entry.staCount === -1) ? "NaN" : utils.cleanSignal(entry.staCount),
+      "ch_util": (entry.chUtil === -1) ? "NaN" : utils.cleanSignal(entry.chUtil),
+      "tx_power_dbm": utils.cleanSignal(entry.txPower),
+      "link_margin_db": utils.cleanSignal(entry.linkMargin),
+      "alphanumeric_ap_name": entry.apName ? entry.apName : "unknown",
     }
   },
 
-  wifiJson: function(sigcapJson) {
-    console.log(`Processing Wi-Fi CSV... # data= ${sigcapJson.length}`)
+  cellularEntry: function (entry) {
+    const outputArr = [];
+    const entryTable = []; // Keep track of distinct entries
 
-    outputArr = []
-    deviceTimedata = {}
+    overview = {
+      "sigcap_version": entry.version,
+      "android_version": entry.androidVersion,
+      "is_debug": entry.isDebug,
+      "uuid": entry.uuid,
+      "device_name": entry.deviceName,
+      "latitude": entry.location.latitude,
+      "longitude": entry.location.longitude,
+      "altitude": entry.location.altitude,
+      "hor_acc": entry.location.hor_acc,
+      "ver_acc": entry.location.ver_acc,
+      "operator": utils.getCleanOp(entry),
+      "network_type*": utils.getActiveNetwork(entry),
+      "override_network_type": entry.overrideNetworkType,
+      "radio_type": entry.phoneType,
+      "nrStatus": entry.nrStatus,
+      "nrAvailable": entry.nrAvailable,
+      "dcNrRestricted": entry.dcNrRestricted,
+      "enDcAvailable": entry.enDcAvailable,
+      "nrFrequencyRange": entry.nrFrequencyRange,
+      "cellBandwidths": `"${entry.cellBandwidths}"`,
+      "usingCA": entry.usingCA,
+    };
+    timestamp = new Date(utils.getCleanDatetime(entry)).getTime();
+
+    // Flag to insert a nan rows if there is no cellular data
+    hasData = false;
+
+    // LTE
+    for (let cellEntry of entry.cell_info) {
+      // Get the actual timestamp
+      let actualTimestamp = cellEntry.timestampMs;
+      if (actualTimestamp === undefined) {
+        if (cellEntry.timestampDeltaMs !== undefined) {
+          actualTimestamp = timestamp - cellEntry.timestampDeltaMs;
+        } else {
+          actualTimestamp = timestamp;
+        }
+      }
+
+      // Skip entry with the same timestamp, pci, and earfcn
+      let identifier = `lte${cellEntry.pci}${cellEntry.earfcn}${actualTimestamp}`;
+      if (entryTable.includes(identifier)) {
+        continue;
+      }
+      entryTable.push(identifier);
+
+      let isPrimary = (cellEntry.width > 0 || cellEntry.registered);
+
+      // Populate single data point
+      const tempOut = {
+        "timestamp": utils.printDateTime(actualTimestamp)
+      };
+      for (let key in overview) {
+        tempOut[key] = overview[key];
+      }
+      tempOut["lte/nr"] = "lte";
+      tempOut["pci"] = utils.cleanSignal(cellEntry.pci);
+      tempOut["lte-ci/nr-nci"] = utils.cleanSignal(cellEntry.ci);
+      tempOut["lte-earfcn/nr-arfcn"] = utils.cleanSignal(cellEntry.earfcn);
+      tempOut["band*"] = cellHelper.earfcnToBand(tempOut["lte-earfcn/nr-arfcn"]);
+      tempOut["freq_mhz*"] = cellHelper.earfcnToFreq(tempOut["lte-earfcn/nr-arfcn"]);
+      tempOut["width_mhz"] = utils.cleanSignal(cellEntry.width);
+      tempOut["rsrp_dbm"] = utils.cleanSignal(cellEntry.rsrp);
+      tempOut["rsrq_db"] = utils.cleanSignal(cellEntry.rsrq);
+      tempOut["lte-rssi/nr-sinr_dbm"] = utils.cleanSignal(cellEntry.rssi);
+      tempOut["cqi"] = utils.cleanSignal(cellEntry.cqi);
+      tempOut["primary/other*"] = isPrimary ? "primary" : "other";
+      outputArr.push(tempOut);
+      hasData = true;
+    }
+
+    // Handle missing nr_info on older files
+    if (entry.nr_info === undefined) {
+      entry.nr_info = [];
+    }
+
+    // NR
+    for (let cellEntry of entry.nr_info) {
+      // Get the actual timestamp
+      let actualTimestamp = cellEntry.timestampMs;
+      if (actualTimestamp === undefined) {
+        if (cellEntry.timestampDeltaMs !== undefined) {
+          actualTimestamp = timestamp - cellEntry.timestampDeltaMs;
+        } else {
+          actualTimestamp = timestamp;
+        }
+      }
+
+      // Skip entry with the same timestamp, pci, and nrarfcn
+      let identifier = `nr${cellEntry.nrPci}${cellEntry.nrarfcn}${actualTimestamp}`;
+      if (entryTable.includes(identifier)) {
+        continue;
+      }
+      entryTable.push(identifier);
+
+      let isPrimary = (cellEntry.isSignalStrAPI === false && cellEntry.status === "primary");
+
+      // Populate single data point
+      tempOut = {
+        "timestamp": utils.printDateTime(actualTimestamp)
+      };
+      for (let key in overview) {
+        tempOut[key] = overview[key];
+      }
+      tempOut["lte/nr"] = cellEntry.isSignalStrAPI ? "nr-SignalStrAPI" : "nr";
+      tempOut["pci"] = utils.cleanSignal(cellEntry.nrPci);
+      tempOut["lte-ci/nr-nci"] = utils.cleanSignal(cellEntry.nci);
+      tempOut["lte-earfcn/nr-arfcn"] = utils.cleanSignal(cellEntry.nrarfcn);
+      tempOut["band*"] = cellHelper.nrarfcnToBand(
+        tempOut["lte-earfcn/nr-arfcn"],
+        cellHelper.REGION.NAR);
+      tempOut["freq_mhz*"] = cellHelper.nrarfcnToFreq(tempOut["lte-earfcn/nr-arfcn"]);
+      tempOut["width_mhz"] = "NaN";
+      tempOut["rsrp_dbm"] = utils.cleanSignal(cellEntry.ssRsrp);
+      tempOut["rsrq_db"] = utils.cleanSignal(cellEntry.ssRsrq);
+      tempOut["lte-rssi/nr-sinr_dbm"] = utils.cleanSignal(cellEntry.ssSinr);
+      tempOut["cqi"] = "NaN";
+      tempOut["primary/other*"] = isPrimary ? "primary" : "other";
+      outputArr.push(tempOut);
+      hasData = true;
+    }
+
+    if (!hasData) {
+      // Populate single data point with NaNs
+      tempOut = {
+        "timestamp": utils.printDateTime(timestamp)
+      };
+      for (let key in overview) {
+        tempOut[key] = overview[key];
+      }
+      tempOut["lte/nr"] = "lte";
+      tempOut["pci"] = "NaN";
+      tempOut["lte-ci/nr-nci"] = "NaN";
+      tempOut["lte-earfcn/nr-arfcn"] = "NaN";
+      tempOut["band*"] = "N/A";
+      tempOut["freq_mhz*"] = "NaN";
+      tempOut["width_mhz"] = "NaN";
+      tempOut["rsrp_dbm"] = "NaN";
+      tempOut["rsrq_db"] = "NaN";
+      tempOut["lte-rssi/nr-sinr_dbm"] = "NaN";
+      tempOut["cqi"] = "NaN";
+      tempOut["primary/other*"] = "other";
+      outputArr.push(tempOut);
+    }
+
+    return outputArr;
+  },
+
+  cellularJson: function(sigcapJson) {
+    // console.log(sigcapJson)
+    outputArr = [];
 
     for (let entry of sigcapJson) {
       // console.log(entry)
-      if (deviceTimedata[entry.uuid] === undefined) {
-        deviceTimedata[entry.uuid] = []
-      }
-
-      overview = {
-        "sigcap_version": entry.version,
-        "android_version": entry.androidVersion,
-        "is_debug": entry.isDebug,
-        "uuid": entry.uuid,
-        "device_name": entry.deviceName,
-        "latitude": entry.location.latitude,
-        "longitude": entry.location.longitude,
-        "altitude": entry.location.altitude,
-        "hor_acc": entry.location.hor_acc,
-        "ver_acc": entry.location.ver_acc,
-        "network_type*": utils.getActiveNetwork(entry),
-      }
-      timestamp = new Date(utils.getCleanDatetime(entry)).getTime()
-
-      if (entry.wifi_info.length === 0) {
-        // Populate single data point with NaNs
-        tempOut = {
-          "timestamp": utils.printDateTime(timestamp)
-        }
-        for (let key in overview) {
-          tempOut[key] = overview[key]
-        }
-        tempOut["ssid"] = ""
-        tempOut["bssid"] = "unknown"
-        tempOut["primary_freq_mhz"] = "NaN"
-        tempOut["center_freq_mhz"] = "NaN"
-        tempOut["width_mhz"] = "NaN"
-        tempOut["channel_num"] = "NaN"
-        tempOut["primary_ch_num"] = "NaN"
-        tempOut["rssi_dbm"] = "NaN"
-        tempOut["standard"] = "unknown"
-        tempOut["connected"] = false
-        tempOut["link_speed"] = "NaN"
-        tempOut["tx_link_speed"] = "NaN"
-        tempOut["rx_link_speed"] = "NaN"
-        tempOut["max_supported_tx_link_speed"] = "NaN"
-        tempOut["max_supported_rx_link_speed"] = "NaN"
-        tempOut["capabilities"] = "NaN"
-        tempOut["sta_count"] = "NaN"
-        tempOut["ch_util"] = "NaN"
-        tempOut["tx_power_dbm"] = "NaN"
-        tempOut["link_margin_db"] = "NaN"
-        tempOut["alphanumeric_ap_name"] = "unknown"
-      }
-
-      for (let wifiEntry of entry.wifi_info) {
-        // Get the actual timestamp
-        let actualTimestamp = wifiEntry.timestampMs
-        if (actualTimestamp === undefined) {
-          if (wifiEntry.timestampDeltaMs !== undefined) {
-            actualTimestamp = timestamp - wifiEntry.timestampDeltaMs
-          } else {
-            actualTimestamp = timestamp
-          }
-        }
-
-        // Skip entry with the same timestamp and bssid
-        let identifier = `${wifiEntry.bssid}${actualTimestamp}`
-        if (deviceTimedata[entry.uuid].includes(identifier)) {
-          continue
-        }
-        deviceTimedata[entry.uuid].push(identifier)
-
-        // Populate single data point
-        tempOut = {
-          "timestamp": utils.printDateTime(actualTimestamp)
-        }
-        for (let key in overview) {
-          tempOut[key] = overview[key]
-        }
-        tempOut["ssid"] = wifiEntry.ssid ? `"${wifiEntry.ssid}"` : ""
-        tempOut["bssid"] = wifiEntry.bssid
-        tempOut["primary_freq_mhz"] = wifiEntry.primaryFreq
-        tempOut["center_freq_mhz"] = (wifiEntry.centerFreq1 === 0) ? wifiEntry.centerFreq0 : wifiEntry.centerFreq1
-        tempOut["width_mhz"] = wifiEntry.width
-        tempOut["channel_num"] = wifiHelper.freqWidthToChannelNum(
-            wifiEntry.primaryFreq, wifiEntry.width)
-        tempOut["primary_ch_num"] = wifiHelper.freqWidthToChannelNum(
-            wifiEntry.primaryFreq, 20)
-        tempOut["rssi_dbm"] = utils.cleanSignal(
-            wifiEntry.rssi)
-        tempOut["standard"] = wifiEntry.standard
-        tempOut["connected"] = wifiEntry.connected
-        if (tempOut["connected"] === true) {
-          tempOut["link_speed"] = utils.cleanSignal(
-              wifiEntry.linkSpeed)
-          tempOut["tx_link_speed"] = utils.cleanSignal(
-              wifiEntry.txLinkSpeed)
-          tempOut["rx_link_speed"] = utils.cleanSignal(
-              wifiEntry.rxLinkSpeed)
-          tempOut["max_supported_tx_link_speed"] = utils.cleanSignal(
-              wifiEntry.maxSupportedTxLinkSpeed)
-          tempOut["max_supported_rx_link_speed"] = utils.cleanSignal(
-              wifiEntry.maxSupportedRxLinkSpeed)
-        } else {
-          tempOut["link_speed"] = "NaN"
-          tempOut["tx_link_speed"] = "NaN"
-          tempOut["rx_link_speed"] = "NaN"
-          tempOut["max_supported_tx_link_speed"] = "NaN"
-          tempOut["max_supported_rx_link_speed"] = "NaN"
-        }
-        tempOut["capabilities"] = wifiEntry.capabilities
-        tempOut["sta_count"] = utils.cleanSignal(wifiEntry.staCount)
-        if (tempOut["sta_count"] == -1) {
-          tempOut["sta_count"] = "NaN"
-        }
-        tempOut["ch_util"] = utils.cleanSignal(wifiEntry.chUtil)
-        if (tempOut["ch_util"] == -1) {
-          tempOut["ch_util"] = "NaN"
-        }
-        tempOut["tx_power_dbm"] = utils.cleanSignal(wifiEntry.txPower)
-        tempOut["link_margin_db"] = utils.cleanSignal(wifiEntry.linkMargin)
-        tempOut["alphanumeric_ap_name"] = wifiEntry.apName ? wifiEntry.apName : "unknown"
-
-        outputArr.push(tempOut)
-      }
+       outputArr = outputArr.concat(this.cellularEntry(entry));
     }
 
-    console.log(`# Wi-Fi entries= ${outputArr.length}`);
     return outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp));
-  }
+  },
+
+  wifiEntry: function (entry) {
+    const outputArr = [];
+    const entryTable = []; // Keep track of distinct entries
+
+    overview = {
+      "sigcap_version": entry.version,
+      "android_version": entry.androidVersion,
+      "is_debug": entry.isDebug,
+      "uuid": entry.uuid,
+      "device_name": entry.deviceName,
+      "latitude": entry.location.latitude,
+      "longitude": entry.location.longitude,
+      "altitude": entry.location.altitude,
+      "hor_acc": entry.location.hor_acc,
+      "ver_acc": entry.location.ver_acc,
+      "network_type*": utils.getActiveNetwork(entry),
+    };
+    timestamp = new Date(utils.getCleanDatetime(entry)).getTime();
+
+    if (entry.wifi_info.length === 0) {
+      // Populate single data point with NaNs
+      tempOut = {
+        "timestamp": utils.printDateTime(timestamp)
+      };
+      for (let key in overview) {
+        tempOut[key] = overview[key];
+      }
+      tempOut["ssid"] = "";
+      tempOut["bssid"] = "unknown";
+      tempOut["primary_freq_mhz"] = "NaN";
+      tempOut["center_freq_mhz"] = "NaN";
+      tempOut["width_mhz"] = "NaN";
+      tempOut["channel_num"] = "NaN";
+      tempOut["primary_ch_num"] = "NaN";
+      tempOut["rssi_dbm"] = "NaN";
+      tempOut["standard"] = "unknown";
+      tempOut["connected"] = false;
+      tempOut["link_speed"] = "NaN";
+      tempOut["tx_link_speed"] = "NaN";
+      tempOut["rx_link_speed"] = "NaN";
+      tempOut["max_supported_tx_link_speed"] = "NaN";
+      tempOut["max_supported_rx_link_speed"] = "NaN";
+      tempOut["capabilities"] = "NaN";
+      tempOut["sta_count"] = "NaN";
+      tempOut["ch_util"] = "NaN";
+      tempOut["tx_power_dbm"] = "NaN";
+      tempOut["link_margin_db"] = "NaN";
+      tempOut["alphanumeric_ap_name"] = "unknown";
+    }
+
+    for (let wifiEntry of entry.wifi_info) {
+      // Get the actual timestamp
+      let actualTimestamp = wifiEntry.timestampMs;
+      if (actualTimestamp === undefined) {
+        if (wifiEntry.timestampDeltaMs !== undefined) {
+          actualTimestamp = timestamp - wifiEntry.timestampDeltaMs;
+        } else {
+          actualTimestamp = timestamp;
+        }
+      }
+
+      // Skip entry with the same timestamp and bssid
+      let identifier = `${wifiEntry.bssid}${actualTimestamp}`;
+      if (entryTable.includes(identifier)) {
+        continue;
+      }
+      entryTable.push(identifier);
+
+      // Populate single data point
+      tempOut = {
+        "timestamp": utils.printDateTime(actualTimestamp)
+      };
+      for (let key in overview) {
+        tempOut[key] = overview[key];
+      }
+      tempOut["ssid"] = wifiEntry.ssid ? `"${wifiEntry.ssid}"` : "";
+      tempOut["bssid"] = wifiEntry.bssid;
+      tempOut["primary_freq_mhz"] = wifiEntry.primaryFreq;
+      tempOut["center_freq_mhz"] = (wifiEntry.centerFreq1 === 0) ? wifiEntry.centerFreq0 : wifiEntry.centerFreq1;
+      tempOut["width_mhz"] = wifiEntry.width
+      tempOut["channel_num"] = wifiHelper.freqWidthToChannelNum(
+          wifiEntry.primaryFreq, wifiEntry.width);
+      tempOut["primary_ch_num"] = wifiHelper.freqWidthToChannelNum(
+          wifiEntry.primaryFreq, 20);
+      tempOut["rssi_dbm"] = utils.cleanSignal(
+          wifiEntry.rssi);
+      tempOut["standard"] = wifiEntry.standard;
+      tempOut["connected"] = wifiEntry.connected;
+      if (tempOut["connected"] === true) {
+        tempOut["link_speed"] = utils.cleanSignal(
+            wifiEntry.linkSpeed);
+        tempOut["tx_link_speed"] = utils.cleanSignal(
+            wifiEntry.txLinkSpeed);
+        tempOut["rx_link_speed"] = utils.cleanSignal(
+            wifiEntry.rxLinkSpeed);
+        tempOut["max_supported_tx_link_speed"] = utils.cleanSignal(
+            wifiEntry.maxSupportedTxLinkSpeed);
+        tempOut["max_supported_rx_link_speed"] = utils.cleanSignal(
+            wifiEntry.maxSupportedRxLinkSpeed);
+      } else {
+        tempOut["link_speed"] = "NaN";
+        tempOut["tx_link_speed"] = "NaN";
+        tempOut["rx_link_speed"] = "NaN";
+        tempOut["max_supported_tx_link_speed"] = "NaN";
+        tempOut["max_supported_rx_link_speed"] = "NaN";
+      }
+      tempOut["capabilities"] = wifiEntry.capabilities;
+      tempOut["sta_count"] = utils.cleanSignal(wifiEntry.staCount);
+      if (tempOut["sta_count"] == -1) {
+        tempOut["sta_count"] = "NaN";
+      }
+      tempOut["ch_util"] = utils.cleanSignal(wifiEntry.chUtil);
+      if (tempOut["ch_util"] == -1) {
+        tempOut["ch_util"] = "NaN";
+      }
+      tempOut["tx_power_dbm"] = utils.cleanSignal(wifiEntry.txPower);
+      tempOut["link_margin_db"] = utils.cleanSignal(wifiEntry.linkMargin);
+      tempOut["alphanumeric_ap_name"] = wifiEntry.apName ? wifiEntry.apName : "unknown";
+
+      outputArr.push(tempOut);
+    }
+
+    return outputArr;
+  },
+
+  wifiJson: function(sigcapJson) {
+    outputArr = []
+
+    for (let entry of sigcapJson) {
+      // console.log(entry)
+       outputArr = outputArr.concat(this.wifiEntry(entry));
+    }
+
+    return outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp));
+  },
 }
 
 module.exports = csv
