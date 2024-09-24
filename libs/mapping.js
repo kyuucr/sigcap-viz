@@ -83,7 +83,8 @@ const mapping = {
     const cellArr = cellularArr.map(val => {
       // Give the actual RSRP if it pass the filters
       let rsrp = "NaN";
-      if (bandFilter === "all" || val["band*"] == bandFilter) {
+      if (typeof val["rsrp_dbm"] === "number"
+          && (bandFilter === "all" || val["band*"] == bandFilter)) {
         rsrp = val["rsrp_dbm"];
       }
       // console.log(rsrp, typeof rsrp)
@@ -101,7 +102,9 @@ const mapping = {
         prev.push(curr);
       } else {
         prev[idx].count += 1;
-        if (curr.rsrp && prev[idx].rsrp < curr.rsrp) {
+        // if (curr.rsrp !== "NaN")
+        //   console.log(prev[idx].rsrp, typeof prev[idx].rsrp, curr.rsrp, typeof curr.rsrp);
+        if (prev[idx].rsrp === "NaN" || prev[idx].rsrp < curr.rsrp) {
           prev[idx].rsrp = curr.rsrp;
         }
       }
