@@ -63,7 +63,7 @@ block content
         .d-flex.g-3.align-items-center.mb-2
           .pe-2.flex-grow-1
             label.visually-hidden(for='inputFilter')= 'File filter'
-            input#inputFilter.form-control(type='text' placeholder='File filter' onkeydown='if (event.keyCode == 13) { filter(); return false }')
+            input#inputFilter.form-control(type='text' placeholder='File filter' onkeydown='if (event.keyCode == 13) { submitFilter(); return false }')
           .p-2
             button.btn.btn-primary(type='button' onclick='submitFilter()')= 'Submit filter'
           .p-2
