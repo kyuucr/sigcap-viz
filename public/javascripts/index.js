@@ -580,16 +580,18 @@ document.getElementById(`techSelect`).addEventListener(
 // Init map modal
 document.getElementById("mapModal").addEventListener('shown.bs.modal', () => {
   if (mapMode === "selectCoord") {
-    document.getElementById("coordBox").style.display = ''
-    document.getElementById("vizBox").style.display = 'none'
+    document.getElementById("coordBox").style.display = '';
+    document.getElementById("vizBox").style.display = 'none';
     drawingManager.setDrawingMode(google.maps.drawing.OverlayType.RECTANGLE);
     // drawingManager.drawingControl = true;
     map.data.forEach(feature => {
       map.data.remove(feature);
     });
   } else {
-    document.getElementById("coordBox").style.display = 'none'
-    document.getElementById("vizBox").style.display = ''
+    document.getElementById("coordBox").style.display = 'none';
+    document.getElementById("vizBox").style.display = '';
+    document.getElementById("techRadioLte").checked = true;
+    selectedTech = "lte";
     drawingManager.setDrawingMode(null);
     // drawingManager.drawingControl = false;
 
@@ -623,6 +625,7 @@ document.getElementById("mapModal").addEventListener('shown.bs.modal', () => {
 
       bandList = data.bandList;
       opList = data.opList;
+      selectedTech = "lte";
       initBandList();
       initOpList();
 
