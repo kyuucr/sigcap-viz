@@ -26,6 +26,8 @@ block content
               a.dropdown-item(href='javascript:void(0);' onclick='fetchFiles("wifi")')= 'Wi-Fi CSV'
       .col-12
         button.btn.btn-primary(type='button' onclick='fetchFiles("json")')= 'Download Raw JSON'
+      .col-12
+        button.btn.btn-primary(type='button' onclick='updateFbase()')= 'Update Files'
     .row
       .col-lg-6.col-md-12.g-3
         h3= 'Spatial selection'

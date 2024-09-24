@@ -304,7 +304,7 @@ function fetchFileList(extras) {
       appendData(data)
     })
     .catch(function (err) {
-      console.log(err)
+      console.error(err)
       window.alert(err)
     })
 }
@@ -385,7 +385,7 @@ function fetchFiles(mode) {
     downloadBlob(data, mode === "json" ? "raw.json" : `${mode}.csv`)
   })
   .catch(function (err) {
-    console.log(err)
+    console.error(err)
     window.alert(err)
   })
 
@@ -473,6 +473,29 @@ function initOpList () {
     mainContainer.appendChild(option);
     first = false;
   }
+}
+
+function updateFbase() {
+  fetch("/files", {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ command: `update` })
+  })
+  .then(result => {
+    return result.text();
+  })
+  .then(data => {
+    console.log(data);
+    window.alert(data);
+    location.reload();
+  })
+  .catch(err => {
+    console.error(err);
+    window.alert(err);
+  })
 }
 
 
@@ -647,7 +670,7 @@ document.getElementById("mapModal").addEventListener('shown.bs.modal', () => {
       fillHeatmap(data);
     })
     .catch(function (err) {
-      console.log(err);
+      console.error(err);
       window.alert(err);
     });
   }
