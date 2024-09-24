@@ -63,7 +63,7 @@ router.route("/")
           .flat()
           .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
       });
-      console.log(`# of cellular data= ${data.length}`);
+      console.log(`# of cellular entries= ${data.length}`);
       if (data.length === 0) {
         res.status(404).send("No data within the selected query !");
       } else {
@@ -94,7 +94,7 @@ router.route("/")
 
     } else if (command === "wifiPsql") {
       const data = await fp.psqlFetchWifiInfoJson(params, csv.psqlToWifiJson);
-      console.log(`# of Wi-Fi data= ${data.length}`);
+      console.log(`# of Wi-Fi entries= ${data.length}`);
       if (data.length === 0) {
         res.status(404).send("No data within the selected query !");
       } else {
@@ -115,15 +115,35 @@ router.route("/")
       if (data.length === 0) {
         res.status(404).send("No data within the selected query !");
       } else {
-        let boundary = mapping.getBoundary(data);
+        const boundary = mapping.getBoundary(data);
+        const opList = utils.getOpList(data);
+        const bandList = Object.assign(
+          {},
+          ...opList.map(op => {
+            const temp = data.filter(val => utils.getCleanOp(val) === op);
+            return {
+              [op]: cellHelper.getBandList(temp, cellHelper.REGION.NAR)
+            };
+          })
+        );
         res.json({
           boundary: boundary,
-          bandList: cellHelper.getBandList(data, cellHelper.REGION.NAR),
-          opList: utils.getOpList(data)
+          bandList: bandList,
+          opList: opList
         });
       }
 
     } else if (command === "cellularMap") {
+      const data = await fp.psqlFetchJson(params);
+      if (data.length === 0) {
+        res.status(404).send("No data within the selected query !");
+      } else {
+        let cellularJson = csv.cellularJson(data, params.techFilter);
+        console.log(`# cellular entries= ${cellularJson.length}`);
+        res.json(mapping.cellular(cellularJson, params));
+      }
+
+    } else if (command === "cellularMapPsql") {
       let data;
       if (params.techFilter === "lte") {
         data = await fp.psqlFetchCellInfoJson(params, csv.psqlToCellJsonRedux);
@@ -134,7 +154,7 @@ router.route("/")
         return;
       }
       data = data.filter(val => val.latitude !== 0 && val.longitude !== 0);
-      console.log(`# of cellular data= ${data.length}`);
+      console.log(`# of cellular entries= ${data.length}`);
       if (data.length === 0) {
         res.status(404).send("No data within the selected query !");
       } else {

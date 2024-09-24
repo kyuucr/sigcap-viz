@@ -448,11 +448,12 @@ function fillHeatmap (geojson) {
 }
 
 function initBandList () {
+  const op = document.getElementById("opSelect").value;
   const mainContainer = document.getElementById("bandSelect");
   mainContainer.innerHTML = "";
 
   let first = true;
-  let allBands = [ "all" ].concat(bandList[selectedTech]);
+  let allBands = [ "all" ].concat(bandList[op][selectedTech]);
   for (let band of allBands) {
     let option = document.createElement("option");
     option.innerHTML = `<option${first ? " selected" : ""} value="${band}">${band}</option>`;
@@ -572,7 +573,13 @@ function getZoomByBounds (map, bounds) {
 document.getElementById(`techSelect`).addEventListener(
   `change`, event => {
     selectedTech = event.target.value;
-    // console.log(selectedTech)
+    console.log(`selectedTech= ${event.target.value}`)
+    initBandList();
+  }
+);
+document.getElementById(`opSelect`).addEventListener(
+  `change`, event => {
+    console.log(`selectedOp= ${event.target.value}`)
     initBandList();
   }
 );
@@ -626,8 +633,8 @@ document.getElementById("mapModal").addEventListener('shown.bs.modal', () => {
       bandList = data.bandList;
       opList = data.opList;
       selectedTech = "lte";
-      initBandList();
       initOpList();
+      initBandList();
 
       return fetchGeoJson({
         bandFilter: "all",

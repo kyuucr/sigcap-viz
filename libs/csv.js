@@ -1020,13 +1020,13 @@ const csv = {
     return outputArr;
   },
 
-  cellularJson: function(sigcapJson) {
+  cellularJson: function(sigcapJson, mode) {
     // console.log(sigcapJson)
     outputArr = [];
 
     for (let entry of sigcapJson) {
       // console.log(entry)
-       outputArr = outputArr.concat(this.cellularEntry(entry));
+       outputArr = outputArr.concat(this.cellularEntry(entry, mode));
     }
 
     return outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp));
