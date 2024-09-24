@@ -845,7 +845,7 @@ const csv = {
     }
   },
 
-  cellularEntry: function (entry) {
+  cellularEntry: function (entry, mode = "any") {
     const outputArr = [];
     const entryTable = []; // Keep track of distinct entries
 
@@ -874,51 +874,72 @@ const csv = {
     };
     timestamp = new Date(utils.getCleanDatetime(entry)).getTime();
 
-    // Flag to insert a nan rows if there is no cellular data
-    hasData = false;
-
     // LTE
-    for (let cellEntry of entry.cell_info) {
-      // Get the actual timestamp
-      let actualTimestamp = cellEntry.timestampMs;
-      if (actualTimestamp === undefined) {
-        if (cellEntry.timestampDeltaMs !== undefined) {
-          actualTimestamp = timestamp - cellEntry.timestampDeltaMs;
-        } else {
-          actualTimestamp = timestamp;
+    if (mode === "any" || mode === "lte") {
+      // Populate single data point with NaNs if there are no entries
+      if (entry.cell_info.length === 0) {
+        const tempOut = {
+          "timestamp": utils.printDateTime(timestamp)
+        };
+        for (let key in overview) {
+          tempOut[key] = overview[key];
         }
+        tempOut["lte/nr"] = "lte";
+        tempOut["pci"] = "NaN";
+        tempOut["lte-ci/nr-nci"] = "NaN";
+        tempOut["lte-earfcn/nr-arfcn"] = "NaN";
+        tempOut["band*"] = "N/A";
+        tempOut["freq_mhz*"] = "NaN";
+        tempOut["width_mhz"] = "NaN";
+        tempOut["rsrp_dbm"] = "NaN";
+        tempOut["rsrq_db"] = "NaN";
+        tempOut["lte-rssi/nr-sinr_dbm"] = "NaN";
+        tempOut["cqi"] = "NaN";
+        tempOut["primary/other*"] = "other";
+        outputArr.push(tempOut);
       }
 
-      // Skip entry with the same timestamp, pci, and earfcn
-      let identifier = `lte${cellEntry.pci}${cellEntry.earfcn}${actualTimestamp}`;
-      if (entryTable.includes(identifier)) {
-        continue;
-      }
-      entryTable.push(identifier);
+      for (let cellEntry of entry.cell_info) {
+        // Get the actual timestamp
+        let actualTimestamp = cellEntry.timestampMs;
+        if (actualTimestamp === undefined) {
+          if (cellEntry.timestampDeltaMs !== undefined) {
+            actualTimestamp = timestamp - cellEntry.timestampDeltaMs;
+          } else {
+            actualTimestamp = timestamp;
+          }
+        }
 
-      let isPrimary = (cellEntry.width > 0 || cellEntry.registered);
+        // Skip entry with the same timestamp, pci, and earfcn
+        let identifier = `lte${cellEntry.pci}${cellEntry.earfcn}${actualTimestamp}`;
+        if (entryTable.includes(identifier)) {
+          continue;
+        }
+        entryTable.push(identifier);
 
-      // Populate single data point
-      const tempOut = {
-        "timestamp": utils.printDateTime(actualTimestamp)
-      };
-      for (let key in overview) {
-        tempOut[key] = overview[key];
+        let isPrimary = (cellEntry.width > 0 || cellEntry.registered);
+
+        // Populate single data point
+        const tempOut = {
+          "timestamp": utils.printDateTime(actualTimestamp)
+        };
+        for (let key in overview) {
+          tempOut[key] = overview[key];
+        }
+        tempOut["lte/nr"] = "lte";
+        tempOut["pci"] = utils.cleanSignal(cellEntry.pci);
+        tempOut["lte-ci/nr-nci"] = utils.cleanSignal(cellEntry.ci);
+        tempOut["lte-earfcn/nr-arfcn"] = utils.cleanSignal(cellEntry.earfcn);
+        tempOut["band*"] = cellHelper.earfcnToBand(tempOut["lte-earfcn/nr-arfcn"]);
+        tempOut["freq_mhz*"] = cellHelper.earfcnToFreq(tempOut["lte-earfcn/nr-arfcn"]);
+        tempOut["width_mhz"] = utils.cleanSignal(cellEntry.width);
+        tempOut["rsrp_dbm"] = utils.cleanSignal(cellEntry.rsrp);
+        tempOut["rsrq_db"] = utils.cleanSignal(cellEntry.rsrq);
+        tempOut["lte-rssi/nr-sinr_dbm"] = utils.cleanSignal(cellEntry.rssi);
+        tempOut["cqi"] = utils.cleanSignal(cellEntry.cqi);
+        tempOut["primary/other*"] = isPrimary ? "primary" : "other";
+        outputArr.push(tempOut);
       }
-      tempOut["lte/nr"] = "lte";
-      tempOut["pci"] = utils.cleanSignal(cellEntry.pci);
-      tempOut["lte-ci/nr-nci"] = utils.cleanSignal(cellEntry.ci);
-      tempOut["lte-earfcn/nr-arfcn"] = utils.cleanSignal(cellEntry.earfcn);
-      tempOut["band*"] = cellHelper.earfcnToBand(tempOut["lte-earfcn/nr-arfcn"]);
-      tempOut["freq_mhz*"] = cellHelper.earfcnToFreq(tempOut["lte-earfcn/nr-arfcn"]);
-      tempOut["width_mhz"] = utils.cleanSignal(cellEntry.width);
-      tempOut["rsrp_dbm"] = utils.cleanSignal(cellEntry.rsrp);
-      tempOut["rsrq_db"] = utils.cleanSignal(cellEntry.rsrq);
-      tempOut["lte-rssi/nr-sinr_dbm"] = utils.cleanSignal(cellEntry.rssi);
-      tempOut["cqi"] = utils.cleanSignal(cellEntry.cqi);
-      tempOut["primary/other*"] = isPrimary ? "primary" : "other";
-      outputArr.push(tempOut);
-      hasData = true;
     }
 
     // Handle missing nr_info on older files
@@ -927,72 +948,73 @@ const csv = {
     }
 
     // NR
-    for (let cellEntry of entry.nr_info) {
-      // Get the actual timestamp
-      let actualTimestamp = cellEntry.timestampMs;
-      if (actualTimestamp === undefined) {
-        if (cellEntry.timestampDeltaMs !== undefined) {
-          actualTimestamp = timestamp - cellEntry.timestampDeltaMs;
-        } else {
-          actualTimestamp = timestamp;
+    if (mode === "any" || mode === "nr") {
+      // Populate single data point with NaNs if there are no entries
+      if (entry.nr_info.length === 0) {
+        const tempOut = {
+          "timestamp": utils.printDateTime(timestamp)
+        };
+        for (let key in overview) {
+          tempOut[key] = overview[key];
         }
+        tempOut["lte/nr"] = "nr";
+        tempOut["pci"] = "NaN";
+        tempOut["lte-ci/nr-nci"] = "NaN";
+        tempOut["lte-earfcn/nr-arfcn"] = "NaN";
+        tempOut["band*"] = "N/A";
+        tempOut["freq_mhz*"] = "NaN";
+        tempOut["width_mhz"] = "NaN";
+        tempOut["rsrp_dbm"] = "NaN";
+        tempOut["rsrq_db"] = "NaN";
+        tempOut["lte-rssi/nr-sinr_dbm"] = "NaN";
+        tempOut["cqi"] = "NaN";
+        tempOut["primary/other*"] = "other";
+        outputArr.push(tempOut);
       }
 
-      // Skip entry with the same timestamp, pci, and nrarfcn
-      let identifier = `nr${cellEntry.nrPci}${cellEntry.nrarfcn}${actualTimestamp}`;
-      if (entryTable.includes(identifier)) {
-        continue;
-      }
-      entryTable.push(identifier);
+      for (let cellEntry of entry.nr_info) {
+        // Get the actual timestamp
+        let actualTimestamp = cellEntry.timestampMs;
+        if (actualTimestamp === undefined) {
+          if (cellEntry.timestampDeltaMs !== undefined) {
+            actualTimestamp = timestamp - cellEntry.timestampDeltaMs;
+          } else {
+            actualTimestamp = timestamp;
+          }
+        }
 
-      let isPrimary = (cellEntry.isSignalStrAPI === false && cellEntry.status === "primary");
+        // Skip entry with the same timestamp, pci, and nrarfcn
+        let identifier = `nr${cellEntry.nrPci}${cellEntry.nrarfcn}${actualTimestamp}`;
+        if (entryTable.includes(identifier)) {
+          continue;
+        }
+        entryTable.push(identifier);
 
-      // Populate single data point
-      tempOut = {
-        "timestamp": utils.printDateTime(actualTimestamp)
-      };
-      for (let key in overview) {
-        tempOut[key] = overview[key];
-      }
-      tempOut["lte/nr"] = cellEntry.isSignalStrAPI ? "nr-SignalStrAPI" : "nr";
-      tempOut["pci"] = utils.cleanSignal(cellEntry.nrPci);
-      tempOut["lte-ci/nr-nci"] = utils.cleanSignal(cellEntry.nci);
-      tempOut["lte-earfcn/nr-arfcn"] = utils.cleanSignal(cellEntry.nrarfcn);
-      tempOut["band*"] = cellHelper.nrarfcnToBand(
-        tempOut["lte-earfcn/nr-arfcn"],
-        cellHelper.REGION.NAR);
-      tempOut["freq_mhz*"] = cellHelper.nrarfcnToFreq(tempOut["lte-earfcn/nr-arfcn"]);
-      tempOut["width_mhz"] = "NaN";
-      tempOut["rsrp_dbm"] = utils.cleanSignal(cellEntry.ssRsrp);
-      tempOut["rsrq_db"] = utils.cleanSignal(cellEntry.ssRsrq);
-      tempOut["lte-rssi/nr-sinr_dbm"] = utils.cleanSignal(cellEntry.ssSinr);
-      tempOut["cqi"] = "NaN";
-      tempOut["primary/other*"] = isPrimary ? "primary" : "other";
-      outputArr.push(tempOut);
-      hasData = true;
-    }
+        let isPrimary = (cellEntry.isSignalStrAPI === false && cellEntry.status === "primary");
 
-    if (!hasData) {
-      // Populate single data point with NaNs
-      tempOut = {
-        "timestamp": utils.printDateTime(timestamp)
-      };
-      for (let key in overview) {
-        tempOut[key] = overview[key];
+        // Populate single data point
+        const tempOut = {
+          "timestamp": utils.printDateTime(actualTimestamp)
+        };
+        for (let key in overview) {
+          tempOut[key] = overview[key];
+        }
+        tempOut["lte/nr"] = cellEntry.isSignalStrAPI ? "nr-SignalStrAPI" : "nr";
+        tempOut["pci"] = utils.cleanSignal(cellEntry.nrPci);
+        tempOut["lte-ci/nr-nci"] = utils.cleanSignal(cellEntry.nci);
+        tempOut["lte-earfcn/nr-arfcn"] = utils.cleanSignal(cellEntry.nrarfcn);
+        tempOut["band*"] = cellHelper.nrarfcnToBand(
+          tempOut["lte-earfcn/nr-arfcn"],
+          cellHelper.REGION.NAR);
+        tempOut["freq_mhz*"] = cellHelper.nrarfcnToFreq(tempOut["lte-earfcn/nr-arfcn"]);
+        tempOut["width_mhz"] = "NaN";
+        tempOut["rsrp_dbm"] = utils.cleanSignal(cellEntry.ssRsrp);
+        tempOut["rsrq_db"] = utils.cleanSignal(cellEntry.ssRsrq);
+        tempOut["lte-rssi/nr-sinr_dbm"] = utils.cleanSignal(cellEntry.ssSinr);
+        tempOut["cqi"] = "NaN";
+        tempOut["primary/other*"] = isPrimary ? "primary" : "other";
+        outputArr.push(tempOut);
       }
-      tempOut["lte/nr"] = "lte";
-      tempOut["pci"] = "NaN";
-      tempOut["lte-ci/nr-nci"] = "NaN";
-      tempOut["lte-earfcn/nr-arfcn"] = "NaN";
-      tempOut["band*"] = "N/A";
-      tempOut["freq_mhz*"] = "NaN";
-      tempOut["width_mhz"] = "NaN";
-      tempOut["rsrp_dbm"] = "NaN";
-      tempOut["rsrq_db"] = "NaN";
-      tempOut["lte-rssi/nr-sinr_dbm"] = "NaN";
-      tempOut["cqi"] = "NaN";
-      tempOut["primary/other*"] = "other";
-      outputArr.push(tempOut);
     }
 
     return outputArr;
@@ -1031,7 +1053,7 @@ const csv = {
 
     if (entry.wifi_info.length === 0) {
       // Populate single data point with NaNs
-      tempOut = {
+      const tempOut = {
         "timestamp": utils.printDateTime(timestamp)
       };
       for (let key in overview) {
@@ -1079,7 +1101,7 @@ const csv = {
       entryTable.push(identifier);
 
       // Populate single data point
-      tempOut = {
+      const tempOut = {
         "timestamp": utils.printDateTime(actualTimestamp)
       };
       for (let key in overview) {
