@@ -3,17 +3,18 @@ const cellHelper = require("./cell-helper")
 const wifiHelper = require("./wifi-helper")
 const math = require("mathjs")
 
-const toCsv = function(objArr, sep=",") {
-  let outStr = Object.keys(objArr[0]).join(sep) + `\n`
-
-  for (let entry of objArr) {
-    outStr += Object.values(entry).join(sep) + `\n`
-  }
-
-  return outStr
-}
 
 const csv = {
+  toCsv: function(objArr, sep=",") {
+    let outStr = Object.keys(objArr[0]).join(sep) + `\n`
+
+    for (let entry of objArr) {
+      outStr += Object.values(entry).join(sep) + `\n`
+    }
+
+    return outStr
+  },
+
   general: function(sigcapJson) {
     console.log(`Processing general CSV... # data= ${sigcapJson.length}`)
 
@@ -649,199 +650,154 @@ const csv = {
     if (outputArr.length === 0) {
       return ""
     } else {
-      return toCsv(outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp)))
+      return this.toCsv(outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp)))
     }
   },
 
-  cellular: function(sigcapJson) {
-    let outputArr = this.cellularJson(sigcapJson);
-    if (outputArr.length === 0) {
-      return "";
-    } else {
-      return toCsv(outputArr);
-    }
-  },
-
-  cellularJson: function(sigcapJson) {
-    console.log(`Processing cellular CSV... # data= ${sigcapJson.length}`)
-
-    outputArr = []
-    deviceTimedata = {}
-
-    for (let entry of sigcapJson) {
-      // console.log(entry)
-      if (deviceTimedata[entry.uuid] === undefined) {
-        deviceTimedata[entry.uuid] = []
-      }
-
-      overview = {
-        "sigcap_version": entry.version,
-        "android_version": entry.androidVersion,
-        "is_debug": entry.isDebug,
-        "uuid": entry.uuid,
-        "device_name": entry.deviceName,
-        "latitude": entry.location.latitude,
-        "longitude": entry.location.longitude,
-        "altitude": entry.location.altitude,
-        "hor_acc": entry.location.hor_acc,
-        "ver_acc": entry.location.ver_acc,
-        "operator": utils.getCleanOp(entry),
-        "network_type*": utils.getActiveNetwork(entry),
-        "override_network_type": entry.overrideNetworkType,
-        "radio_type": entry.phoneType,
-        "nrStatus": entry.nrStatus,
-        "nrAvailable": entry.nrAvailable,
-        "dcNrRestricted": entry.dcNrRestricted,
-        "enDcAvailable": entry.enDcAvailable,
-        "nrFrequencyRange": entry.nrFrequencyRange,
-        "cellBandwidths": `"${entry.cellBandwidths}"`,
-        "usingCA": entry.usingCA,
-      }
-      timestamp = new Date(utils.getCleanDatetime(entry)).getTime()
-
-      // Flag to insert a nan rows if there is no cellular data
-      hasData = false
-
-      // LTE
-      for (let cellEntry of entry.cell_info) {
-        // Get the actual timestamp
-        let actualTimestamp = cellEntry.timestampMs
-        if (actualTimestamp === undefined) {
-          if (cellEntry.timestampDeltaMs !== undefined) {
-            actualTimestamp = timestamp - cellEntry.timestampDeltaMs
-          } else {
-            actualTimestamp = timestamp
-          }
-        }
-
-        // Skip entry with the same timestamp, pci, and earfcn
-        let identifier = `${cellEntry.pci}${cellEntry.earfcn}${actualTimestamp}`
-        if (deviceTimedata[entry.uuid].includes(identifier)) {
-          continue
-        }
-        deviceTimedata[entry.uuid].push(identifier)
-
-        let isPrimary = (cellEntry.width > 0 || cellEntry.registered)
-
-        // Populate single data point
-        tempOut = {
-          "timestamp": utils.printDateTime(actualTimestamp)
-        }
-        for (let key in overview) {
-          tempOut[key] = overview[key]
-        }
-        tempOut["lte/nr"] = "lte"
-        tempOut["pci"] = utils.cleanSignal(cellEntry.pci)
-        tempOut["lte-ci/nr-nci"] = utils.cleanSignal(cellEntry.ci)
-        tempOut["lte-earfcn/nr-arfcn"] = utils.cleanSignal(cellEntry.earfcn)
-        tempOut["band*"] = cellHelper.earfcnToBand(tempOut["lte-earfcn/nr-arfcn"])
-        tempOut["freq_mhz*"] = cellHelper.earfcnToFreq(tempOut["lte-earfcn/nr-arfcn"])
-        tempOut["width_mhz"] = utils.cleanSignal(cellEntry.width)
-        tempOut["rsrp_dbm"] = utils.cleanSignal(cellEntry.rsrp)
-        tempOut["rsrq_db"] = utils.cleanSignal(cellEntry.rsrq)
-        tempOut["lte-rssi/nr-sinr_dbm"] = utils.cleanSignal(cellEntry.rssi)
-        tempOut["cqi"] = utils.cleanSignal(cellEntry.cqi)
-        tempOut["primary/other*"] = isPrimary ? "primary" : "other"
-        if (isPrimary) {
-          outputArr.unshift(tempOut)
-        } else {
-          outputArr.push(tempOut)
-        }
-        hasData = true
-      }
-
-      // Handle missing nr_info on older files
-      if (entry.nr_info === undefined) {
-        entry.nr_info = [];
-      }
-
-      // NR
-      nrIndex = 1
-      for (let cellEntry of entry.nr_info) {
-        // Get the actual timestamp
-        let actualTimestamp = cellEntry.timestampMs
-        if (actualTimestamp === undefined) {
-          if (cellEntry.timestampDeltaMs !== undefined) {
-            actualTimestamp = timestamp - cellEntry.timestampDeltaMs
-          } else {
-            actualTimestamp = timestamp
-          }
-        }
-
-        // Skip entry with the same timestamp, pci, and nrarfcn
-        let identifier = `${cellEntry.nrPci}${cellEntry.nrarfcn}${actualTimestamp}`
-        if (deviceTimedata[entry.uuid].includes(identifier)) {
-          continue
-        }
-        deviceTimedata[entry.uuid].push(identifier)
-
-        let isPrimary = (cellEntry.isSignalStrAPI === false && cellEntry.status === "primary")
-
-        // Populate single data point
-        tempOut = {
-          "timestamp": utils.printDateTime(actualTimestamp)
-        }
-        for (let key in overview) {
-          tempOut[key] = overview[key]
-        }
-        tempOut["lte/nr"] = cellEntry.isSignalStrAPI ? "nr-SignalStrAPI" : "nr"
-        tempOut["pci"] = utils.cleanSignal(cellEntry.nrPci)
-        tempOut["lte-ci/nr-nci"] = utils.cleanSignal(cellEntry.nci)
-        tempOut["lte-earfcn/nr-arfcn"] = utils.cleanSignal(cellEntry.nrarfcn)
-        tempOut["band*"] = cellHelper.nrarfcnToBand(
-          tempOut["lte-earfcn/nr-arfcn"],
-          cellHelper.REGION.NAR)
-        tempOut["freq_mhz*"] = cellHelper.nrarfcnToFreq(tempOut["lte-earfcn/nr-arfcn"])
-        tempOut["width_mhz"] = "NaN"
-        tempOut["rsrp_dbm"] = utils.cleanSignal(cellEntry.ssRsrp)
-        tempOut["rsrq_db"] = utils.cleanSignal(cellEntry.ssRsrq)
-        tempOut["lte-rssi/nr-sinr_dbm"] = utils.cleanSignal(cellEntry.ssSinr)
-        tempOut["cqi"] = "NaN"
-        tempOut["primary/other*"] = isPrimary ? "primary" : "other"
-        if (isPrimary) {
-          outputArr.splice(1, 0, tempOut)
-        } else {
-          outputArr.splice(nrIndex, 0, tempOut)
-        }
-        nrIndex += 1
-        hasData = true
-      }
-
-      if (!hasData) {
-        // Populate single data point with NaNs
-        tempOut = {
-          "timestamp": utils.printDateTime(timestamp)
-        }
-        for (let key in overview) {
-          tempOut[key] = overview[key]
-        }
-        tempOut["lte/nr"] = "lte"
-        tempOut["pci"] = "NaN"
-        tempOut["lte-ci/nr-nci"] = "NaN"
-        tempOut["lte-earfcn/nr-arfcn"] = "NaN"
-        tempOut["band*"] = "N/A"
-        tempOut["freq_mhz*"] = "NaN"
-        tempOut["width_mhz"] = "NaN"
-        tempOut["rsrp_dbm"] = "NaN"
-        tempOut["rsrq_db"] = "NaN"
-        tempOut["lte-rssi/nr-sinr_dbm"] = "NaN"
-        tempOut["cqi"] = "NaN"
-        tempOut["primary/other*"] = "other"
-        outputArr.push(tempOut)
+  psqlToCellJson: function (entry) {
+    // console.log(entry)
+    let actualTimestamp = entry.timestampMs;
+    if (actualTimestamp === null) {
+      if (entry.timestampDeltaMs !== null) {
+        actualTimestamp = entry.data_timestamp.getTime() - entry.timestampDeltaMs;
+      } else {
+        actualTimestamp = entry.data_timestamp.getTime();
       }
     }
 
-    console.log(`# cellular entries= ${outputArr.length}`);
-    return outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp));
+    let arfcn = utils.cleanSignal(entry.earfcn);
+
+    return {
+      "timestamp": utils.printDateTime(actualTimestamp),
+      "sigcap_version": entry.version,
+      "android_version": entry.androidVersion,
+      "is_debug": entry.isDebug,
+      "uuid": entry.uuid,
+      "device_name": entry.deviceName,
+      "latitude": entry.latitude,
+      "longitude": entry.longitude,
+      "altitude": entry.altitude,
+      "hor_acc": entry.hor_acc,
+      "ver_acc": entry.ver_acc,
+      "operator": utils.getCleanOp(entry),
+      "network_type*": utils.getActiveNetwork(entry),
+      "override_network_type": entry.overrideNetworkType,
+      "radio_type": entry.phoneType,
+      "nrStatus": entry.nrStatus,
+      "nrAvailable": entry.nrAvailable,
+      "dcNrRestricted": entry.dcNrRestricted,
+      "enDcAvailable": entry.enDcAvailable,
+      "nrFrequencyRange": entry.nrFrequencyRange,
+      "cellBandwidths": `"${entry.cellBandwidths}"`,
+      "usingCA": entry.usingCA,
+      "lte/nr": `lte`,
+      "pci": utils.cleanSignal(entry.pci),
+      "lte-ci/nr-nci": utils.cleanSignal(entry.ci),
+      "lte-earfcn/nr-arfcn": arfcn,
+      "band*": cellHelper.earfcnToBand(arfcn),
+      "freq_mhz": cellHelper.earfcnToFreq(arfcn),
+      "width_mhz": utils.cleanSignal(entry.width),
+      "rsrp_dbm": utils.cleanSignal(entry.rsrp),
+      "rsrq_db": utils.cleanSignal(entry.rsrq),
+      "lte-rssi/nr-sinr_dbm": utils.cleanSignal(entry.rssi),
+      "cqi": utils.cleanSignal(entry.cqi),
+      "primary/other": (entry.width > 0 || entry.registered) ? "primary" : "other",
+    };
   },
 
+  psqlToCellJsonRedux: function (entry) {
+    let arfcn = utils.cleanSignal(entry.earfcn);
+
+    return {
+      "latitude": entry.latitude,
+      "longitude": entry.longitude,
+      "operator": utils.getCleanOp(entry),
+      "lte/nr": `lte`,
+      "band*": cellHelper.earfcnToBand(arfcn),
+      "rsrp_dbm": utils.cleanSignal(entry.rsrp),
+    };
+  },
+
+  psqlToNrJson: function (entry) {
+    // console.log(entry)
+    let actualTimestamp = entry.timestampMs;
+    if (actualTimestamp === null) {
+      if (entry.timestampDeltaMs !== null) {
+        actualTimestamp = entry.data_timestamp.getTime() - entry.timestampDeltaMs;
+      } else {
+        actualTimestamp = entry.data_timestamp.getTime();
+      }
+    }
+
+    let arfcn = utils.cleanSignal(entry.nrarfcn);
+
+    return {
+      "timestamp": utils.printDateTime(actualTimestamp),
+      "sigcap_version": entry.version,
+      "android_version": entry.androidVersion,
+      "is_debug": entry.isDebug,
+      "uuid": entry.uuid,
+      "device_name": entry.deviceName,
+      "latitude": entry.latitude,
+      "longitude": entry.longitude,
+      "altitude": entry.altitude,
+      "hor_acc": entry.hor_acc,
+      "ver_acc": entry.ver_acc,
+      "operator": utils.getCleanOp(entry),
+      "network_type*": utils.getActiveNetwork(entry),
+      "override_network_type": entry.overrideNetworkType,
+      "radio_type": entry.phoneType,
+      "nrStatus": entry.nrStatus,
+      "nrAvailable": entry.nrAvailable,
+      "dcNrRestricted": entry.dcNrRestricted,
+      "enDcAvailable": entry.enDcAvailable,
+      "nrFrequencyRange": entry.nrFrequencyRange,
+      "cellBandwidths": `"${entry.cellBandwidths}"`,
+      "usingCA": entry.usingCA,
+      "lte/nr": `nr${entry.isSignalStrAPI ? "-SignalStrAPI" : ""}`,
+      "pci": utils.cleanSignal(entry.pci),
+      "lte-ci/nr-nci": utils.cleanSignal(entry.nci),
+      "lte-earfcn/nr-arfcn": arfcn,
+      "band*": cellHelper.nrarfcnToBand(arfcn, cellHelper.REGION.NAR),
+      "freq_mhz": cellHelper.nrarfcnToFreq(arfcn),
+      "width_mhz": "NaN",
+      "rsrp_dbm": utils.cleanSignal(entry.ssRsrp),
+      "rsrq_db": utils.cleanSignal(entry.ssRsrq),
+      "lte-rssi/nr-sinr_dbm": utils.cleanSignal(entry.ssSinr),
+      "cqi": "NaN",
+      "primary/other": (entry.status === "primary") ? "primary" : "other",
+    };
+  },
+
+  psqlToNrJsonRedux: function (entry) {
+    // console.log(entry)
+    let actualTimestamp = entry.timestampMs;
+    if (actualTimestamp === null) {
+      if (entry.timestampDeltaMs !== null) {
+        actualTimestamp = entry.data_timestamp.getTime() - entry.timestampDeltaMs;
+      } else {
+        actualTimestamp = entry.data_timestamp.getTime();
+      }
+    }
+
+    let arfcn = utils.cleanSignal(entry.nrarfcn);
+
+    return {
+      "latitude": entry.latitude,
+      "longitude": entry.longitude,
+      "operator": utils.getCleanOp(entry),
+      "lte/nr": `nr${entry.isSignalStrAPI ? "-SignalStrAPI" : ""}`,
+      "band*": cellHelper.nrarfcnToBand(arfcn, cellHelper.REGION.NAR),
+      "rsrp_dbm": utils.cleanSignal(entry.ssRsrp),
+    };
+  },
 
   wifi: function(sigcapJson) {
     let outputArr = this.wifiJson(sigcapJson);
     if (outputArr.length === 0) {
       return "";
     } else {
-      return toCsv(outputArr);
+      return this.toCsv(outputArr);
     }
   },
 

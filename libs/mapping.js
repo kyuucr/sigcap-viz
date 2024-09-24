@@ -71,25 +71,19 @@ const mapping = {
     return boundary;
   },
 
-  cellular: function (sigcapArr, options) {
+  cellular: function (cellularArr, options) {
     const zoomLevel = options.zoomLevel || 15;
-    const tileSize = 20 * zoomToBinRadius(zoomLevel, sigcapArr[0].location.latitude);
+    const tileSize = 20 * zoomToBinRadius(zoomLevel, cellularArr[0].latitude);
     const step = tileSize / 111.32e3;
-    const opFilter = options.opFilter;
-    if (opFilter === undefined) {
-      return {}
-    }
-    const techFilter = options.techFilter || "lte";
     const bandFilter = options.bandFilter || "all";
     console.log(`zoomLevel= ${zoomLevel}, tileSize=${tileSize} m, step= ${step}, `
-      + `techFilter=${techFilter}, bandFilter=${bandFilter}`);
+      + `bandFilter=${bandFilter}`);
 
-    const cellArr = csv.cellularJson(sigcapArr).map(val => {
+
+    const cellArr = cellularArr.map(val => {
       // Give the actual RSRP if it pass the filters
       let rsrp = "NaN";
-      if (val["lte/nr"] === techFilter
-          && val["operator"] === opFilter
-          && (bandFilter === "all" || val["band*"] == bandFilter)) {
+      if (bandFilter === "all" || val["band*"] == bandFilter) {
         rsrp = val["rsrp_dbm"];
       }
       // console.log(rsrp, typeof rsrp)
@@ -107,7 +101,7 @@ const mapping = {
         prev.push(curr);
       } else {
         prev[idx].count += 1;
-        if (prev[idx].rsrp === "NaN" || prev[idx].rsrp < curr.rsrp) {
+        if (curr.rsrp && prev[idx].rsrp < curr.rsrp) {
           prev[idx].rsrp = curr.rsrp;
         }
       }

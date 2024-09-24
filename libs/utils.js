@@ -43,7 +43,14 @@ const utils = {
   },
 
   getCleanOp: function(data) {
-    let op = [data.opName, data.simName, data.carrierName, "unknown"].reduce(
+    let ops;
+    if (data.opname) {
+      // psql output
+      ops = [data.opname, data.simname, data.carriername, "unknown"];
+    } else {
+      ops = [data.opName, data.simName, data.carrierName, "unknown"];
+    }
+    let op = ops.reduce(
       (prev, curr) => this.isValidOp(prev) ? prev : curr).trim()
 
     for (let usualCarrier of usualCarriers){
@@ -63,9 +70,11 @@ const utils = {
 
   getActiveNetwork: function(data) {
     // We don't trust network type from the API
-    let hasNr = data.nr_info && (data.nr_info.length > 0)
-    let hasPrimaryNr = data.nr_info && data.nr_info.some(val => val.status === "primary")
-    let hasLte = data.cell_info && (data.cell_info.length > 0)
+    // Check if data came from psql
+    let hasNr = data.hasNr || (data.nr_info && (data.nr_info.length > 0))
+    let hasPrimaryNr = data.hasPrimaryNr
+      || (data.nr_info && data.nr_info.some(val => val.status === "primary"))
+    let hasLte = data.hasLte || (data.cell_info && (data.cell_info.length > 0))
 
     let networkType
     if (data.networkType === "IWLAN") {

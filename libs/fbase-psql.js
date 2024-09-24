@@ -46,6 +46,12 @@ const createFilter = function(params) {
     filterStr.push(`data_timestamp >= '${params.timestamp.start}'::timestamp`)
     filterStr.push(`data_timestamp < '${params.timestamp.end}'::timestamp`)
   }
+  if (params.opFilter) {
+    filterStr.push(
+      `((properties->>'opName') LIKE '%${params.opFilter}%' OR `
+        + `(properties->>'simName') LIKE '%${params.opFilter}%' OR `
+        + `(properties->>'carrierName') LIKE '%${params.opFilter}%')`)
+  }
 
   let outStr = filterStr.join(" AND ")
   console.log(`filterStr= ${outStr}`)
@@ -79,6 +85,188 @@ const fp = {
   psqlFetchJson: async function (params) {
     return (await db.any(`SELECT properties FROM data WHERE ${createFilter(params)};`))
       .map(val => val.properties);
+  },
+
+  psqlFetchCellInfoJson: async function (params, transformer) {
+    const cellSql =
+`SELECT
+  data_timestamp,
+  (properties->'version') AS "version",
+  (properties->'androidVersion') AS "androidVersion",
+  (properties->'isDebug') AS "isDebug",
+  (properties->'uuid') AS "uuid",
+  (properties->'deviceName') AS "deviceName",
+  (properties->'location'->'latitude') AS "latitude",
+  (properties->'location'->'longitude') AS "longitude",
+  (properties->'location'->'altitude') AS "altitude",
+  (properties->'location'->'hor_acc') AS "hor_acc",
+  (properties->'location'->'ver_acc') AS "ver_acc",
+  (properties->'opName') AS "opName",
+  (properties->'simName') AS "simName",
+  (properties->'carrierName') AS "carrierName",
+  (properties->'networkType') AS "networkType",
+  (properties->'overrideNetworkType') AS "overrideNetworkType",
+  (properties->'phoneType') AS "phoneType",
+  (properties->'nrStatus') AS "nrStatus",
+  (properties->'nrAvailable') AS "nrAvailable",
+  (properties->'dcNrRestricted') AS "dcNrRestricted",
+  (properties->'enDcAvailable') AS "enDcAvailable",
+  (properties->'nrFrequencyRange') AS "nrFrequencyRange",
+  (properties->'cellBandwidths') AS "cellBandwidths",
+  (properties->'usingCA') AS "usingCA",
+  (jsonb_array_length(properties->'cell_info') > 0)::boolean AS "hasLte",
+  (jsonb_array_length(properties->'nr_info') > 0)::boolean AS "hasNr",
+  ((properties->'nr_info'->0->>'status') = 'primary')::boolean AS "hasPrimaryNr",
+  CASE
+    WHEN jsonb_array_length(properties->'cell_info') = 0 THEN NULL
+    ELSE a."timestampMs"
+  END AS "timestampMs",
+  CASE
+    WHEN jsonb_array_length(properties->'cell_info') = 0 THEN NULL
+    ELSE a."timestampDeltaMs"
+  END AS "timestampDeltaMs",
+  CASE
+    WHEN jsonb_array_length(properties->'cell_info') = 0 THEN NULL
+    ELSE a."pci"
+  END AS "pci",
+  CASE
+    WHEN jsonb_array_length(properties->'cell_info') = 0 THEN NULL
+    ELSE a."ci"
+  END AS "ci",
+  CASE
+    WHEN jsonb_array_length(properties->'cell_info') = 0 THEN NULL
+    ELSE a."earfcn"
+  END AS "earfcn",
+  CASE
+    WHEN jsonb_array_length(properties->'cell_info') = 0 THEN NULL
+    ELSE a."width"
+  END AS "width",
+  CASE
+    WHEN jsonb_array_length(properties->'cell_info') = 0 THEN NULL
+    ELSE a."rsrp"
+  END AS "rsrp",
+  CASE
+    WHEN jsonb_array_length(properties->'cell_info') = 0 THEN NULL
+    ELSE a."rsrq"
+  END AS "rsrq",
+  CASE
+    WHEN jsonb_array_length(properties->'cell_info') = 0 THEN NULL
+    ELSE a."rssi"
+  END AS "rssi",
+  CASE
+    WHEN jsonb_array_length(properties->'cell_info') = 0 THEN NULL
+    ELSE a."cqi"
+  END AS "cqi",
+  CASE
+    WHEN jsonb_array_length(properties->'cell_info') = 0 THEN NULL
+    ELSE a."registered"
+  END AS "registered"
+FROM data
+LEFT JOIN LATERAL (SELECT
+  jsonb_array_elements(properties->'cell_info')->'timestampMs' AS "timestampMs",
+  jsonb_array_elements(properties->'cell_info')->'timestampDeltaMs' AS "timestampDeltaMs",
+  jsonb_array_elements(properties->'cell_info')->'pci' AS "pci",
+  jsonb_array_elements(properties->'cell_info')->'ci' AS "ci",
+  jsonb_array_elements(properties->'cell_info')->'earfcn' AS "earfcn",
+  jsonb_array_elements(properties->'cell_info')->'width' AS "width",
+  jsonb_array_elements(properties->'cell_info')->'rsrp' AS "rsrp",
+  jsonb_array_elements(properties->'cell_info')->'rsrq' AS "rsrq",
+  jsonb_array_elements(properties->'cell_info')->'rssi' AS "rssi",
+  jsonb_array_elements(properties->'cell_info')->'cqi' AS "cqi",
+  jsonb_array_elements(properties->'cell_info')->'registered' AS "registered") a ON TRUE
+WHERE ${createFilter(params)};`
+    return await db.map(cellSql, [], transformer);
+  },
+
+  psqlFetchNrInfoJson: async function (params, transformer) {
+    const nrSql =
+`SELECT
+  data_timestamp,
+  (properties->'version') AS "version",
+  (properties->'androidVersion') AS "androidVersion",
+  (properties->'isDebug') AS "isDebug",
+  (properties->'uuid') AS "uuid",
+  (properties->'deviceName') AS "deviceName",
+  (properties->'location'->'latitude') AS "latitude",
+  (properties->'location'->'longitude') AS "longitude",
+  (properties->'location'->'altitude') AS "altitude",
+  (properties->'location'->'hor_acc') AS "hor_acc",
+  (properties->'location'->'ver_acc') AS "ver_acc",
+  (properties->'opName') AS "opName",
+  (properties->'simName') AS "simName",
+  (properties->'carrierName') AS "carrierName",
+  (properties->'networkType') AS "networkType",
+  (properties->'overrideNetworkType') AS "overrideNetworkType",
+  (properties->'phoneType') AS "phoneType",
+  (properties->'nrStatus') AS "nrStatus",
+  (properties->'nrAvailable') AS "nrAvailable",
+  (properties->'dcNrRestricted') AS "dcNrRestricted",
+  (properties->'enDcAvailable') AS "enDcAvailable",
+  (properties->'nrFrequencyRange') AS "nrFrequencyRange",
+  (properties->'cellBandwidths') AS "cellBandwidths",
+  (properties->'usingCA') AS "usingCA",
+  (jsonb_array_length(properties->'cell_info') > 0)::boolean AS "hasLte",
+  (jsonb_array_length(properties->'nr_info') > 0)::boolean AS "hasNr",
+  ((properties->'nr_info'->0->>'status') = 'primary')::boolean AS "hasPrimaryNr",
+  CASE
+    WHEN jsonb_array_length(properties->'nr_info') = 0 THEN NULL
+    ELSE a."timestampMs"
+  END AS "timestampMs",
+  CASE
+    WHEN jsonb_array_length(properties->'nr_info') = 0 THEN NULL
+    ELSE a."timestampDeltaMs"
+  END AS "timestampDeltaMs",
+  CASE
+    WHEN jsonb_array_length(properties->'nr_info') = 0 THEN NULL
+    ELSE a."pci"
+  END AS "pci",
+  CASE
+    WHEN jsonb_array_length(properties->'nr_info') = 0 THEN NULL
+    ELSE a."nci"
+  END AS "nci",
+  CASE
+    WHEN jsonb_array_length(properties->'nr_info') = 0 THEN NULL
+    ELSE a."nrarfcn"
+  END AS "nrarfcn",
+  CASE
+    WHEN jsonb_array_length(properties->'nr_info') = 0 THEN NULL
+    ELSE a."band"
+  END AS "band",
+  CASE
+    WHEN jsonb_array_length(properties->'nr_info') = 0 THEN NULL
+    ELSE a."ssRsrp"
+  END AS "ssRsrp",
+  CASE
+    WHEN jsonb_array_length(properties->'nr_info') = 0 THEN NULL
+    ELSE a."ssRsrq"
+  END AS "ssRsrq",
+  CASE
+    WHEN jsonb_array_length(properties->'nr_info') = 0 THEN NULL
+    ELSE a."ssSinr"
+  END AS "ssSinr",
+  CASE
+    WHEN jsonb_array_length(properties->'nr_info') = 0 THEN NULL
+    ELSE a."status"
+  END AS "status",
+  CASE
+    WHEN jsonb_array_length(properties->'nr_info') = 0 THEN NULL
+    ELSE a."isSignalStrAPI"
+  END AS "isSignalStrAPI"
+FROM data
+LEFT JOIN LATERAL (SELECT
+  jsonb_array_elements(properties->'nr_info')->'timestampMs' AS "timestampMs",
+  jsonb_array_elements(properties->'nr_info')->'timestampDeltaMs' AS "timestampDeltaMs",
+  jsonb_array_elements(properties->'nr_info')->'nrPci' AS "pci",
+  jsonb_array_elements(properties->'nr_info')->'nci' AS "nci",
+  jsonb_array_elements(properties->'nr_info')->'nrarfcn' AS "nrarfcn",
+  jsonb_array_elements(properties->'nr_info')->'band' AS "band",
+  jsonb_array_elements(properties->'nr_info')->'ssRsrp' AS "ssRsrp",
+  jsonb_array_elements(properties->'nr_info')->'ssRsrq' AS "ssRsrq",
+  jsonb_array_elements(properties->'nr_info')->'ssSinr' AS "ssSinr",
+  jsonb_array_elements(properties->'nr_info')->'status' AS "status",
+  jsonb_array_elements(properties->'nr_info')->'isSignalStrAPI' AS "isSignalStrAPI") a ON TRUE
+WHERE ${createFilter(params)};`;
+    return await db.map(nrSql, [], transformer);
   },
 
   psqlFetchTableNames: async function () {
