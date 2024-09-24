@@ -250,8 +250,10 @@ function appendData(data) {
   let mainContainer = document.getElementById("fileTable")
 
   // Initialize table and header checkbox
-  mainContainer.innerHTML = ""
-  document.getElementById("filesCheckAll").checked = false
+  mainContainer.innerHTML = "";
+  document.getElementById("filesCheckAll").checked = false;
+  document.getElementById("filesCheckAll").indeterminate = false;
+  selectedFiles.length = 0;
 
   for (let entry of data) {
     // console.log(entry)
