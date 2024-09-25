@@ -316,6 +316,7 @@ function appendData(data) {
 }
 
 function fetchFileList(extras) {
+  showSpinner(true);
   fetch("/files", extras)
     .then(function (response) {
       if (response.status !== 200) {
@@ -326,11 +327,15 @@ function fetchFileList(extras) {
       return response.json()
     })
     .then(function (data) {
-      appendData(data)
+      showSpinner(false, () => {
+        appendData(data);
+      });
     })
     .catch(function (err) {
-      console.error(err)
-      window.alert(err)
+      showSpinner(false, () => {
+        console.error(err);
+        window.alert(err);
+      });
     })
 }
 
