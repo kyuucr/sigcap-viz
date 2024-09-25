@@ -191,6 +191,7 @@ let opList = [];
 let bandList = {};
 let selectedTech = "lte";
 let selectedWifiFreq = "2.4";
+let selectedStatMode = "max";
 const uniiList = {
   "2.4": [ "all" ],
   "5": [ "all", "U-NII-1", "U-NII-2A", "U-NII-2C", "U-NII-3", "U-NII-4" ],
@@ -421,7 +422,8 @@ function submitMapFilterCell () {
   fetchGeoJson({
     bandFilter: document.getElementById("bandSelect").value,
     techFilter: selectedTech,
-    opFilter: document.getElementById("opSelect").value
+    opFilter: document.getElementById("opSelect").value,
+    statMode: selectedStatMode,
   })
   .then(data => {
     fillHeatmap(data);
@@ -431,7 +433,8 @@ function submitMapFilterCell () {
 function submitMapFilterWifi () {
   fetchGeoJson({
     uniiFilter: document.getElementById("uniiSelect").value,
-    wifiFreqFilter: selectedWifiFreq
+    wifiFreqFilter: selectedWifiFreq,
+    statMode: selectedStatMode,
   })
   .then(data => {
     fillHeatmap(data);
@@ -552,8 +555,8 @@ function initMap() {
   map.data.addListener("click", (event) => {
     infoWindow.setContent(
       `${mapMode === "cellular" ? "RSRP" : "RSSI"}: `
-        + `${event.feature.getProperty("signal")} dBm, `
-        + `count: ${event.feature.getProperty("count")}`);
+        + `${event.feature.getProperty("signal").toFixed(2)} dBm<br>`
+        + `Count: ${event.feature.getProperty("count")}`);
     infoWindow.setPosition(event.latLng);
     infoWindow.open(map);
   });
@@ -644,6 +647,18 @@ document.getElementById(`wifiFreqSelect`).addEventListener(
     initUniiList();
   }
 );
+document.getElementById(`statSelectCell`).addEventListener(
+  `change`, event => {
+    selectedStatMode = event.target.value;
+    console.log(`selectedStatMode= ${event.target.value}`)
+  }
+);
+document.getElementById(`statSelectWifi`).addEventListener(
+  `change`, event => {
+    selectedStatMode = event.target.value;
+    console.log(`selectedStatMode= ${event.target.value}`)
+  }
+);
 
 // Init map modal
 document.getElementById("mapModal").addEventListener('shown.bs.modal', () => {
@@ -661,7 +676,9 @@ document.getElementById("mapModal").addEventListener('shown.bs.modal', () => {
     document.getElementById("vizBoxCell").style.display = '';
     document.getElementById("vizBoxWifi").style.display = 'none';
     document.getElementById("techRadioLte").checked = true;
+    document.getElementById("statRadioCellMax").checked = true;
     selectedTech = "lte";
+    selectedStatMode = "max";
     drawingManager.setDrawingMode(null);
     // drawingManager.drawingControl = false;
 
@@ -696,13 +713,15 @@ document.getElementById("mapModal").addEventListener('shown.bs.modal', () => {
       bandList = data.bandList;
       opList = data.opList;
       selectedTech = "lte";
+      selectedStatMode = "max";
       initOpList();
       initBandList();
 
       return fetchGeoJson({
         bandFilter: "all",
         techFilter: "lte",
-        opFilter: opList[0]
+        opFilter: opList[0],
+        statMode: "max"
       });
     })
     .then(function (data) {
@@ -719,7 +738,9 @@ document.getElementById("mapModal").addEventListener('shown.bs.modal', () => {
     document.getElementById("vizBoxCell").style.display = 'none';
     document.getElementById("vizBoxWifi").style.display = '';
     document.getElementById("wifiFreqRadio2_4").checked = true;
+    document.getElementById("statRadioWifiMax").checked = true;
     selectedWifiFreq = "2.4";
+    selectedStatMode = "max";
     drawingManager.setDrawingMode(null);
     // drawingManager.drawingControl = false;
 
@@ -752,11 +773,13 @@ document.getElementById("mapModal").addEventListener('shown.bs.modal', () => {
       map.fitBounds(bounds);
 
       selectedWifiFreq = "2.4";
+      selectedStatMode = "max";
       initUniiList();
 
       return fetchGeoJson({
         uniiFilter: "all",
-        wifiFreqFilter: "2.4"
+        wifiFreqFilter: "2.4",
+        statMode: "max"
       });
     })
     .then(function (data) {

@@ -115,12 +115,12 @@ block content
                     label(for='bandSelect')= 'Band'
                     select#bandSelect.form-control.form-select(aria-label='Band')
                   .p-2
-                    label(for='statSelect')= 'Statistic'
-                    #statSelect.form-control.btn-group.p-0(role='group' aria-label='Statistic')
-                      input#statRadioMax.btn-check(type='radio' name='statRadio' value='max' autocomplete='off' checked)
-                      label.btn.btn-outline-primary(for='statRadioMax')= 'Max'
-                      input#statRadioMean.btn-check(type='radio' name='statRadio' value='mean' autocomplete='off')
-                      label.btn.btn-outline-primary(for='statRadioMean')= 'Mean'
+                    label(for='statSelectCell')= 'Statistic'
+                    #statSelectCell.form-control.btn-group.p-0(role='group' aria-label='Statistic')
+                      input#statRadioCellMax.btn-check(type='radio' name='statRadioCell' value='max' autocomplete='off' checked)
+                      label.btn.btn-outline-primary(for='statRadioCellMax')= 'Max'
+                      input#statRadioCellMean.btn-check(type='radio' name='statRadioCell' value='mean' autocomplete='off')
+                      label.btn.btn-outline-primary(for='statRadioCellMean')= 'Mean'
                   .p-2
                     button.btn.btn-primary(type='button' onclick='submitMapFilterCell()')= 'Submit'
               #vizBoxWifi.row.pt-3
@@ -141,12 +141,12 @@ block content
                     label(for='uniiSelect')= 'U-NII Band'
                     select#uniiSelect.form-control.form-select(aria-label='U-NII Band')
                   .p-2
-                    label(for='statSelect')= 'Statistic'
-                    #statSelect.form-control.btn-group.p-0(role='group' aria-label='Statistic')
-                      input#statRadioMax.btn-check(type='radio' name='statRadio' value='max' autocomplete='off' checked)
-                      label.btn.btn-outline-primary(for='statRadioMax')= 'Max'
-                      input#statRadioMean.btn-check(type='radio' name='statRadio' value='mean' autocomplete='off')
-                      label.btn.btn-outline-primary(for='statRadioMean')= 'Mean'
+                    label(for='statSelectWifi')= 'Statistic'
+                    #statSelectWifi.form-control.btn-group.p-0(role='group' aria-label='Statistic')
+                      input#statRadioWifiMax.btn-check(type='radio' name='statRadioWifi' value='max' autocomplete='off' checked)
+                      label.btn.btn-outline-primary(for='statRadioWifiMax')= 'Max'
+                      input#statRadioWifiMean.btn-check(type='radio' name='statRadioWifi' value='mean' autocomplete='off')
+                      label.btn.btn-outline-primary(for='statRadioWifiMean')= 'Mean'
                   .p-2
                     button.btn.btn-primary(type='button' onclick='submitMapFilterWifi()')= 'Submit'
 

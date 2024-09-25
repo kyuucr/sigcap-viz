@@ -1,6 +1,26 @@
 const math = require("mathjs");
 const csv = require("./csv");
+const utils = require("./utils");
 const wifiHelper = require("./wifi-helper");
+
+
+const statFnDict = {
+  "max": (arr) => {
+    if (arr.length === 1 && arr[0] === "NaN") {
+      return "NaN";
+    } else {
+      return math.max(arr);
+    }
+  },
+  "mean": (arr) => {
+    if (arr.length === 1 && arr[0] === "NaN") {
+      return "NaN";
+    } else {
+      const arrMw = arr.map(val => utils.dbmToMw(val));
+      return utils.mwToDbm(math.mean(arrMw));
+    }
+  }
+};
 
 
 function zoomToBinRadius (zoomLevel, latitude) {
@@ -49,6 +69,78 @@ function getWeight (input, min, range) {
   return result;
 }
 
+function processSignal (inputArr, signalIdx, step, filterFn, statFn, weightFn) {
+  const processedArr = inputArr.map(val => {
+    // Give the actual signal value if it pass the filters
+    let signal = "NaN";
+    if (typeof val[signalIdx] === "number"
+        && filterFn(val)) {
+      signal = val[signalIdx];
+    }
+    // console.log(signal, typeof signal)
+    // Map to latitude and longitude bin, and RSRP
+    return {
+      latBin: math.floor(val.latitude / step) * step,
+      lngBin: math.floor(val.longitude / step) * step,
+      signalArr: [ signal ],
+      count: signal === "NaN" ? 0 : 1
+    };
+  }).reduce((prev, curr) => {
+    // Group by latitude and longitude bin, gather signals
+    let idx = prev.findIndex(val => val.latBin === curr.latBin && val.lngBin === curr.lngBin)
+    if (idx === -1) {
+      prev.push(curr);
+    } else if (curr.signalArr[0] !== "NaN") {
+      // if (prev[idx].count === 0 || prev[idx].signal < curr.signal) {
+      if (prev[idx].count === 0) {
+        prev[idx].signalArr = curr.signalArr;
+      } else {
+        prev[idx].signalArr.push(curr.signalArr[0]);
+      }
+      prev[idx].count += 1;
+    }
+    return prev;
+  }, [])
+  .map(val => {
+    return {
+      latBin: val.latBin,
+      lngBin: val.lngBin,
+      signal: statFn(val.signalArr),
+      count: val.count,
+    }
+  });
+
+  return geojson = {
+    type: "FeatureCollection",
+    features: processedArr.map(val => {
+      let lat0 = val.latBin;
+      let lng0 = val.lngBin;
+      let lat1 = val.latBin + step;
+      let lng1 = val.lngBin + step;
+      return {
+        type: "Feature",
+        properties: {
+          color: val.signal === "NaN" ? "#808080" : getRgbaFromWeight(weightFn(val.signal)),
+          signal: val.signal,
+          count: val.count
+        },
+        geometry: {
+          type: "Polygon",
+          coordinates: [
+            [
+              [ lng0, lat0 ],
+              [ lng1, lat0 ],
+              [ lng1, lat1 ],
+              [ lng0, lat1 ],
+              [ lng0, lat0 ]
+            ]
+          ]
+        }
+      };
+    })
+  };
+}
+
 
 const mapping = {
   getBoundary: function (sigcapArr) {
@@ -77,72 +169,20 @@ const mapping = {
     const tileSize = 20 * zoomToBinRadius(zoomLevel, cellularArr[0].latitude);
     const step = tileSize / 111.32e3;
     const bandFilter = options.bandFilter || "all";
+    const statMode = options.statMode || "max";
     console.log(`zoomLevel= ${zoomLevel}, tileSize=${tileSize} m, step= ${step}, `
-      + `bandFilter=${bandFilter}`);
+      + `bandFilter=${bandFilter}, statMode=${statMode}`);
 
-
-    const cellArr = cellularArr.map(val => {
-      // Give the actual RSRP if it pass the filters
-      let rsrp = "NaN";
-      if (typeof val["rsrp_dbm"] === "number"
-          && (bandFilter === "all" || val["band*"] == bandFilter)) {
-        rsrp = val["rsrp_dbm"];
-      }
-      // console.log(rsrp, typeof rsrp)
-      // Map to latitude and longitude bin, and RSRP
-      return {
-        latBin: math.floor(val.latitude / step) * step,
-        lngBin: math.floor(val.longitude / step) * step,
-        rsrp: rsrp,
-        count: 1
-      };
-    }).reduce((prev, curr) => {
-      // Group by latitude and longitude bin, find max RSRP
-      let idx = prev.findIndex(val => val.latBin === curr.latBin && val.lngBin === curr.lngBin)
-      if (idx === -1) {
-        prev.push(curr);
-      } else {
-        prev[idx].count += 1;
-        // if (curr.rsrp !== "NaN")
-        //   console.log(prev[idx].rsrp, typeof prev[idx].rsrp, curr.rsrp, typeof curr.rsrp);
-        if (prev[idx].rsrp === "NaN" || prev[idx].rsrp < curr.rsrp) {
-          prev[idx].rsrp = curr.rsrp;
-        }
-      }
-      return prev;
-    }, []);
-
-    let geojson = {
-      type: "FeatureCollection",
-      features: cellArr.map(val => {
-        let lat0 = val.latBin;
-        let lng0 = val.lngBin;
-        let lat1 = val.latBin + step;
-        let lng1 = val.lngBin + step;
-        return {
-          type: "Feature",
-          properties: {
-            color: val.rsrp === "NaN" ? "#808080" : getRgbaFromWeight(getWeightRsrp(val.rsrp)),
-            signal: val.rsrp,
-            count: val.count
-          },
-          geometry: {
-            type: "Polygon",
-            coordinates: [
-              [
-                [ lng0, lat0 ],
-                [ lng1, lat0 ],
-                [ lng1, lat1 ],
-                [ lng0, lat1 ],
-                [ lng0, lat0 ]
-              ]
-            ]
-          }
-        };
-      })
-    };
-
-    return geojson;
+    return processSignal(
+      cellularArr,
+      "rsrp_dbm",
+      step,
+      val => {
+        return (bandFilter === "all" || val["band*"] == bandFilter);
+      },
+      statFnDict[statMode],
+      getWeightRsrp
+    );
   },
 
   wifi: function (wifiArr, options) {
@@ -151,73 +191,21 @@ const mapping = {
     const step = tileSize / 111.32e3;
     const wifiFreqFilter = options.wifiFreqFilter || "2.4";
     const uniiFilter = options.uniiFilter || "all";
+    const statMode = options.statMode || "max";
     console.log(`zoomLevel= ${zoomLevel}, tileSize=${tileSize} m, step= ${step}, `
-      + `wifiFreqFilter=${wifiFreqFilter}, uniiFilter=${uniiFilter}`);
+      + `wifiFreqFilter=${wifiFreqFilter}, uniiFilter=${uniiFilter}, statMode=${statMode}`);
 
-
-    const cellArr = wifiArr.map(val => {
-      // Give the actual RSRP if it pass the filters
-      let rssi = "NaN";
-      if (typeof val["rssi_dbm"] === "number"
-          && (wifiFreqFilter === "all" || wifiHelper.getFreqCode(val["primary_freq_mhz"]) === wifiFreqFilter)
-          && (uniiFilter === "all" || wifiHelper.getUniiCode(val["primary_freq_mhz"]) === uniiFilter)) {
-        rssi = val["rssi_dbm"];
-      }
-      // console.log(rssi, typeof rssi)
-      // Map to latitude and longitude bin, and RSRP
-      return {
-        latBin: math.floor(val.latitude / step) * step,
-        lngBin: math.floor(val.longitude / step) * step,
-        rssi: rssi,
-        count: 1
-      };
-    }).reduce((prev, curr) => {
-      // Group by latitude and longitude bin, find max RSRP
-      let idx = prev.findIndex(val => val.latBin === curr.latBin && val.lngBin === curr.lngBin)
-      if (idx === -1) {
-        prev.push(curr);
-      } else {
-        prev[idx].count += 1;
-        // if (curr.rssi !== "NaN")
-        //   console.log(prev[idx].rssi, typeof prev[idx].rssi, curr.rssi, typeof curr.rssi);
-        if (prev[idx].rssi === "NaN" || prev[idx].rssi < curr.rssi) {
-          prev[idx].rssi = curr.rssi;
-        }
-      }
-      return prev;
-    }, []);
-
-    let geojson = {
-      type: "FeatureCollection",
-      features: cellArr.map(val => {
-        let lat0 = val.latBin;
-        let lng0 = val.lngBin;
-        let lat1 = val.latBin + step;
-        let lng1 = val.lngBin + step;
-        return {
-          type: "Feature",
-          properties: {
-            color: val.rssi === "NaN" ? "#808080" : getRgbaFromWeight(getWeightRssi(val.rssi)),
-            signal: val.rssi,
-            count: val.count
-          },
-          geometry: {
-            type: "Polygon",
-            coordinates: [
-              [
-                [ lng0, lat0 ],
-                [ lng1, lat0 ],
-                [ lng1, lat1 ],
-                [ lng0, lat1 ],
-                [ lng0, lat0 ]
-              ]
-            ]
-          }
-        };
-      })
-    };
-
-    return geojson;
+    return processSignal(
+      wifiArr,
+      "rssi_dbm",
+      step,
+      val => {
+        return (wifiFreqFilter === "all" || wifiHelper.getFreqCode(val["primary_freq_mhz"]) === wifiFreqFilter)
+          && (uniiFilter === "all" || wifiHelper.getUniiCode(val["primary_freq_mhz"]) === uniiFilter);
+      },
+      statFnDict[statMode],
+      getWeightRssi
+    );
   }
 };
 
