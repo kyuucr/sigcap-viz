@@ -150,5 +150,13 @@ block content
                   .p-2
                     button.btn.btn-primary(type='button' onclick='submitMapFilterWifi()')= 'Submit'
 
+    #spinnerModal.modal.fade(tabindex='-1' aria-hidden='true')
+      .modal-dialog.modal-fullscreen
+        .modal-content(style="background-color: rgba(255, 255, 255, 0.4);")
+          .modal-body.d-flex.align-items-center.justify-content-center
+            .spinner-border(role="status" style="width: 20vh; height: 20vh;")
+              span.visually-hidden= 'Loading ...'
+
+
   script(src='/javascripts/index.js')
   script(async defer src='https://maps.googleapis.com/maps/api/js?key=AIzaSyAcp-79zLw4hn8uA4HRJsWrRhvQQIp3ep4&loading=async&callback=initMap&libraries=visualization,drawing')

@@ -184,6 +184,7 @@ let infoWindow = null;
 let drawingManager = null;
 
 const mapModal = new bootstrap.Modal(document.getElementById("mapModal"));
+const spinnerModal = new bootstrap.Modal(document.getElementById("spinnerModal"));
 const selectedFiles = [];
 let totalEntries = 0;
 let mapMode = "selectCoord";
@@ -197,12 +198,29 @@ const uniiList = {
   "5": [ "all", "U-NII-1", "U-NII-2A", "U-NII-2C", "U-NII-3", "U-NII-4" ],
   "6": [ "all", "U-NII-5", "U-NII-6", "U-NII-7", "U-NII-8" ],
 }
+let spinnerHiddenCb = null;
+let spinnerNeedHide = false;
 
 
 ///////////////////////////
 // function definitions
 ///////////////////////////
 
+
+function showSpinner (show, cb) {
+  console.log(`showSpinner= ${show}`);
+  if (show) {
+    spinnerHiddenCb = null;
+    spinnerModal.show();
+  } else {
+    spinnerNeedHide = true;
+    if (cb) {
+      spinnerHiddenCb = cb;
+    }
+    // Attempt to hide, will not work if the modal is not finished showing.
+    spinnerModal.hide();
+  }
+}
 
 function downloadBlob(blob, name) {
   // Convert your blob into a Blob URL (a special url that points to an object in the browser's memory)
@@ -372,6 +390,7 @@ function fetchFiles(mode) {
     return false;
   }
 
+  showSpinner(true);
   fetch("/files", {
     method: 'POST',
     headers: {
@@ -389,11 +408,16 @@ function fetchFiles(mode) {
     return response.blob()
   })
   .then(function (data) {
-    downloadBlob(data, mode === "json" ? "raw.json" : `${mode}.csv`)
+    showSpinner(false, () => {
+      console.log(data);
+      downloadBlob(data, mode === "json" ? "raw.json" : `${mode}.csv`);
+    });
   })
   .catch(function (err) {
-    console.error(err)
-    window.alert(err)
+    showSpinner(false, () => {
+      console.error(err);
+      window.alert(err);
+    });
   })
 
   return false;
@@ -406,6 +430,7 @@ function fetchGeoJson (extraFilters) {
     filterObj[key] = extraFilters[key];
   }
 
+  showSpinner(true);
   return fetch("/files", {
     method: 'POST',
     headers: {
@@ -414,7 +439,13 @@ function fetchGeoJson (extraFilters) {
     },
     body: JSON.stringify({ command: `${mapMode}Map`, params: filterObj})
   }).then(result => {
+    showSpinner(false);
     return result.json();
+  }).catch(err => {
+    showSpinner(false, () => {
+      console.error(err);
+      window.alert(err);
+    });
   });
 }
 
@@ -509,6 +540,7 @@ function initUniiList () {
 }
 
 function updateFbase() {
+  showSpinner(true);
   fetch("/files", {
     method: 'POST',
     headers: {
@@ -521,13 +553,17 @@ function updateFbase() {
     return result.text();
   })
   .then(data => {
-    console.log(data);
-    window.alert(data);
-    location.reload();
+    showSpinner(false, () => {
+      console.log(data);
+      window.alert(data);
+      location.reload();
+    });
   })
   .catch(err => {
-    console.error(err);
-    window.alert(err);
+    showSpinner(false, () => {
+      console.error(err)
+      window.alert(err)
+    });
   })
 }
 
@@ -791,6 +827,21 @@ document.getElementById("mapModal").addEventListener('shown.bs.modal', () => {
       window.alert(err);
     });
 
+  }
+});
+
+document.getElementById("spinnerModal").addEventListener('hidden.bs.modal', () => {
+  console.log(`Spinner hidden ! cb= ${spinnerHiddenCb}`);
+  spinnerNeedHide = false;
+  if (spinnerHiddenCb) {
+    spinnerHiddenCb();
+    spinnerHiddenCb = null;
+  }
+});
+
+document.getElementById("spinnerModal").addEventListener('shown.bs.modal', () => {
+  if (spinnerNeedHide) {
+    spinnerModal.hide()
   }
 });
 
