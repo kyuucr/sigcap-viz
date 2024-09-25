@@ -75,11 +75,9 @@ const fp = {
       filterStr = ` WHERE fn LIKE '%${filter}%'`;
     }
     return (await db.any(
-        `SELECT fn, data_timestamp FROM (`
-        + `SELECT DISTINCT ON (fn) fn, data_timestamp FROM data${filterStr}`
-        + `) AS subquery ORDER BY data_timestamp DESC;`
-      ))
-      .map(val => val.fn);
+      `SELECT fn, data_timestamp FROM distinct_fn${filterStr} ORDER BY data_timestamp DESC;`
+    ))
+    .map(val => val.fn);
   },
 
   psqlFetchJson: async function (params) {
@@ -456,12 +454,18 @@ WHERE ${createFilter(params)};`;
       uuid_dt VARCHAR(255) UNIQUE NOT NULL,
       data_timestamp timestamp with time zone,
       properties JSONB
+    );
+    CREATE TABLE distinct_fn(
+      id SERIAL PRIMARY KEY,
+      fn VARCHAR(255) UNIQUE NOT NULL,
+      data_timestamp timestamp with time zone
     );`);
   },
 
   psqlInsertData: async function(fn, zipArr) {
     // Create input array
     // zipArr is an array of { name, textContent } from util.readZip
+    let earliestTimestamp = null;
     const inputs = zipArr.map(entry => {
       try {
         // Parse text to JSON
@@ -472,6 +476,9 @@ WHERE ${createFilter(params)};`;
         const uuid_dt = `${parsed.uuid ? parsed.uuid : "0"}-`
           + `${path.basename(entry.name, ".txt")}`;
         const timestamp = utils.getCleanDatetime(parsed);
+        if (earliestTimestamp === null || earliestTimestamp.localeCompare(timestamp)) {
+          earliestTimestamp = timestamp;
+        }
 
         return [fn, uuid_dt, timestamp, sanitized];
       } catch (err) {
@@ -490,6 +497,7 @@ WHERE ${createFilter(params)};`;
 
       let results = await Promise.allSettled(
         inputs.map(async val => {
+          // Insert into data table
           return await sco.one(
             "INSERT INTO data(fn, uuid_dt, data_timestamp, properties) "
               + "VALUES ($1, $2, $3, $4) ON CONFLICT (uuid_dt) DO NOTHING "
@@ -499,6 +507,14 @@ WHERE ${createFilter(params)};`;
       );
       // console.log(results.map(val => [val.status, val.reason ? val.reason.message: "none", val.value]))
       numFail = results.filter(val => val.status === "rejected").length;
+      if (numFail !== results.length) {
+        // Unless all INSERTs failed,
+        // Insert into fn table, ignoring result
+        await sco.none(
+          "INSERT INTO distinct_fn(fn, data_timestamp) "
+            + "VALUES ($1, $2) ON CONFLICT (fn) DO NOTHING;",
+          [fn, earliestTimestamp]);
+      }
       console.log(`INSERT failure rate= ${(numFail / results.length * 100).toFixed(2)}%`)
 
     } catch (error) {
@@ -573,7 +589,7 @@ WHERE ${createFilter(params)};`;
   },
 
   processZipFiles: async function (pathOrBufferArr, fnArr) {
-    console.log(typeof pathOrBufferArr[0])
+    // console.log(typeof pathOrBufferArr[0])
     if (fnArr === undefined) {
       if (typeof pathOrBufferArr[0] === "string") {
         fnArr = pathOrBufferArr;
