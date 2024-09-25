@@ -1,5 +1,6 @@
 const math = require("mathjs");
 const csv = require("./csv");
+const wifiHelper = require("./wifi-helper");
 
 
 function zoomToBinRadius (zoomLevel, latitude) {
@@ -112,33 +113,108 @@ const mapping = {
     }, []);
 
     let geojson = {
-        type: "FeatureCollection",
-        features: cellArr.map(val => {
-          let lat0 = val.latBin;
-          let lng0 = val.lngBin;
-          let lat1 = val.latBin + step;
-          let lng1 = val.lngBin + step;
-          return {
-            type: "Feature",
-            properties: {
-              color: val.rsrp === "NaN" ? "#808080" : getRgbaFromWeight(getWeightRsrp(val.rsrp)),
-              rsrp: val.rsrp,
-              count: val.count
-            },
-            geometry: {
-              type: "Polygon",
-              coordinates: [
-                [
-                  [ lng0, lat0 ],
-                  [ lng1, lat0 ],
-                  [ lng1, lat1 ],
-                  [ lng0, lat1 ],
-                  [ lng0, lat0 ]
-                ]
+      type: "FeatureCollection",
+      features: cellArr.map(val => {
+        let lat0 = val.latBin;
+        let lng0 = val.lngBin;
+        let lat1 = val.latBin + step;
+        let lng1 = val.lngBin + step;
+        return {
+          type: "Feature",
+          properties: {
+            color: val.rsrp === "NaN" ? "#808080" : getRgbaFromWeight(getWeightRsrp(val.rsrp)),
+            signal: val.rsrp,
+            count: val.count
+          },
+          geometry: {
+            type: "Polygon",
+            coordinates: [
+              [
+                [ lng0, lat0 ],
+                [ lng1, lat0 ],
+                [ lng1, lat1 ],
+                [ lng0, lat1 ],
+                [ lng0, lat0 ]
               ]
-            }
-          };
-        })
+            ]
+          }
+        };
+      })
+    };
+
+    return geojson;
+  },
+
+  wifi: function (wifiArr, options) {
+    const zoomLevel = options.zoomLevel || 15;
+    const tileSize = 20 * zoomToBinRadius(zoomLevel, wifiArr[0].latitude);
+    const step = tileSize / 111.32e3;
+    const wifiFreqFilter = options.wifiFreqFilter || "2.4";
+    const uniiFilter = options.uniiFilter || "all";
+    console.log(`zoomLevel= ${zoomLevel}, tileSize=${tileSize} m, step= ${step}, `
+      + `wifiFreqFilter=${wifiFreqFilter}, uniiFilter=${uniiFilter}`);
+
+
+    const cellArr = wifiArr.map(val => {
+      // Give the actual RSRP if it pass the filters
+      let rssi = "NaN";
+      if (typeof val["rssi_dbm"] === "number"
+          && (wifiFreqFilter === "all" || wifiHelper.getFreqCode(val["primary_freq_mhz"]) === wifiFreqFilter)
+          && (uniiFilter === "all" || wifiHelper.getUniiCode(val["primary_freq_mhz"]) === uniiFilter)) {
+        rssi = val["rssi_dbm"];
+      }
+      // console.log(rssi, typeof rssi)
+      // Map to latitude and longitude bin, and RSRP
+      return {
+        latBin: math.floor(val.latitude / step) * step,
+        lngBin: math.floor(val.longitude / step) * step,
+        rssi: rssi,
+        count: 1
+      };
+    }).reduce((prev, curr) => {
+      // Group by latitude and longitude bin, find max RSRP
+      let idx = prev.findIndex(val => val.latBin === curr.latBin && val.lngBin === curr.lngBin)
+      if (idx === -1) {
+        prev.push(curr);
+      } else {
+        prev[idx].count += 1;
+        // if (curr.rssi !== "NaN")
+        //   console.log(prev[idx].rssi, typeof prev[idx].rssi, curr.rssi, typeof curr.rssi);
+        if (prev[idx].rssi === "NaN" || prev[idx].rssi < curr.rssi) {
+          prev[idx].rssi = curr.rssi;
+        }
+      }
+      return prev;
+    }, []);
+
+    let geojson = {
+      type: "FeatureCollection",
+      features: cellArr.map(val => {
+        let lat0 = val.latBin;
+        let lng0 = val.lngBin;
+        let lat1 = val.latBin + step;
+        let lng1 = val.lngBin + step;
+        return {
+          type: "Feature",
+          properties: {
+            color: val.rssi === "NaN" ? "#808080" : getRgbaFromWeight(getWeightRssi(val.rssi)),
+            signal: val.rssi,
+            count: val.count
+          },
+          geometry: {
+            type: "Polygon",
+            coordinates: [
+              [
+                [ lng0, lat0 ],
+                [ lng1, lat0 ],
+                [ lng1, lat1 ],
+                [ lng0, lat1 ],
+                [ lng0, lat0 ]
+              ]
+            ]
+          }
+        };
+      })
     };
 
     return geojson;

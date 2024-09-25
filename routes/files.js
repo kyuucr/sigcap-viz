@@ -139,7 +139,8 @@ router.route("/")
       }
 
     } else if (command === "cellularMap") {
-      const data = await fp.psqlFetchJson(params);
+      const data = (await fp.psqlFetchJson(params))
+        .filter(val => val.latitude !== 0 && val.longitude !== 0);
       if (data.length === 0) {
         res.status(404).send("No data within the selected query !");
       } else {
@@ -165,6 +166,17 @@ router.route("/")
       } else {
         let geojson = mapping.cellular(data, params);
         res.json(geojson);
+      }
+
+    } else if (command === "wifiMap") {
+      const data = (await fp.psqlFetchJson(params))
+        .filter(val => val.latitude !== 0 && val.longitude !== 0);
+      if (data.length === 0) {
+        res.status(404).send("No data within the selected query !");
+      } else {
+        let wifiJson = csv.wifiJson(data);
+        console.log(`# Wi-Fi entries= ${wifiJson.length}`);
+        res.json(mapping.wifi(wifiJson, params));
       }
 
     } else if (command === "update") {

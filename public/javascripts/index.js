@@ -190,6 +190,12 @@ let mapMode = "selectCoord";
 let opList = [];
 let bandList = {};
 let selectedTech = "lte";
+let selectedWifiFreq = "2.4";
+const uniiList = {
+  "2.4": [ "all" ],
+  "5": [ "all", "U-NII-1", "U-NII-2A", "U-NII-2C", "U-NII-3", "U-NII-4" ],
+  "6": [ "all", "U-NII-5", "U-NII-6", "U-NII-7", "U-NII-8" ],
+}
 
 
 ///////////////////////////
@@ -411,11 +417,21 @@ function fetchGeoJson (extraFilters) {
   });
 }
 
-function submitMapFilter () {
+function submitMapFilterCell () {
   fetchGeoJson({
     bandFilter: document.getElementById("bandSelect").value,
     techFilter: selectedTech,
     opFilter: document.getElementById("opSelect").value
+  })
+  .then(data => {
+    fillHeatmap(data);
+  });
+}
+
+function submitMapFilterWifi () {
+  fetchGeoJson({
+    uniiFilter: document.getElementById("uniiSelect").value,
+    wifiFreqFilter: selectedWifiFreq
   })
   .then(data => {
     fillHeatmap(data);
@@ -475,6 +491,20 @@ function initOpList () {
   }
 }
 
+function initUniiList () {
+  const mainContainer = document.getElementById("uniiSelect");
+  mainContainer.innerHTML = "";
+
+  let first = true;
+  let allBands = uniiList[selectedWifiFreq];
+  for (let unii of allBands) {
+    let option = document.createElement("option");
+    option.innerHTML = `<option${first ? " selected" : ""} value="${unii}">${unii}</option>`;
+    mainContainer.appendChild(option);
+    first = false;
+  }
+}
+
 function updateFbase() {
   fetch("/files", {
     method: 'POST',
@@ -521,8 +551,9 @@ function initMap() {
   infoWindow = new google.maps.InfoWindow();
   map.data.addListener("click", (event) => {
     infoWindow.setContent(
-      `RSRP: ${event.feature.getProperty("rsrp")} dBm, `
-      + `count: ${event.feature.getProperty("count")}`);
+      `${mapMode === "cellular" ? "RSRP" : "RSSI"}: `
+        + `${event.feature.getProperty("signal")} dBm, `
+        + `count: ${event.feature.getProperty("count")}`);
     infoWindow.setPosition(event.latLng);
     infoWindow.open(map);
   });
@@ -592,7 +623,7 @@ function getZoomByBounds (map, bounds) {
 // Initializations
 ////////////////////////
 
-// Init technology selector on map modal
+// Init selector on map modal
 document.getElementById(`techSelect`).addEventListener(
   `change`, event => {
     selectedTech = event.target.value;
@@ -606,20 +637,29 @@ document.getElementById(`opSelect`).addEventListener(
     initBandList();
   }
 );
+document.getElementById(`wifiFreqSelect`).addEventListener(
+  `change`, event => {
+    selectedWifiFreq = event.target.value;
+    console.log(`selectedWifiFreq= ${event.target.value}`)
+    initUniiList();
+  }
+);
 
 // Init map modal
 document.getElementById("mapModal").addEventListener('shown.bs.modal', () => {
   if (mapMode === "selectCoord") {
     document.getElementById("coordBox").style.display = '';
-    document.getElementById("vizBox").style.display = 'none';
+    document.getElementById("vizBoxCell").style.display = 'none';
+    document.getElementById("vizBoxWifi").style.display = 'none';
     drawingManager.setDrawingMode(google.maps.drawing.OverlayType.RECTANGLE);
     // drawingManager.drawingControl = true;
     map.data.forEach(feature => {
       map.data.remove(feature);
     });
-  } else {
+  } else if (mapMode === "cellular") {
     document.getElementById("coordBox").style.display = 'none';
-    document.getElementById("vizBox").style.display = '';
+    document.getElementById("vizBoxCell").style.display = '';
+    document.getElementById("vizBoxWifi").style.display = 'none';
     document.getElementById("techRadioLte").checked = true;
     selectedTech = "lte";
     drawingManager.setDrawingMode(null);
@@ -673,6 +713,61 @@ document.getElementById("mapModal").addEventListener('shown.bs.modal', () => {
       console.error(err);
       window.alert(err);
     });
+
+  } else if (mapMode === "wifi") {
+    document.getElementById("coordBox").style.display = 'none';
+    document.getElementById("vizBoxCell").style.display = 'none';
+    document.getElementById("vizBoxWifi").style.display = '';
+    document.getElementById("wifiFreqRadio2_4").checked = true;
+    selectedWifiFreq = "2.4";
+    drawingManager.setDrawingMode(null);
+    // drawingManager.drawingControl = false;
+
+    let filterObj = getFilterObj();
+    fetch("/files", {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ command: `metaMap`, params: filterObj})
+    })
+    .then(function (response) {
+      if (response.status !== 200) {
+        return response.text().then(errText => {
+          throw new Error(errText);
+        })
+      }
+      return response.json();
+    })
+    .then(function (data) {
+      console.log("map metadata= ", data)
+      let [ swLat, neLat, swLng, neLng ] = data.boundary;
+      const bounds = new google.maps.LatLngBounds(
+        new google.maps.LatLng(swLat, swLng),
+        new google.maps.LatLng(neLat, neLng)
+      );
+      let zoomLevel = getZoomByBounds(map, bounds);
+      map.setZoom(zoomLevel);
+      map.fitBounds(bounds);
+
+      selectedWifiFreq = "2.4";
+      initUniiList();
+
+      return fetchGeoJson({
+        uniiFilter: "all",
+        wifiFreqFilter: "2.4"
+      });
+    })
+    .then(function (data) {
+      console.log(data);
+      fillHeatmap(data);
+    })
+    .catch(function (err) {
+      console.error(err);
+      window.alert(err);
+    });
+
   }
 });
 

@@ -213,6 +213,34 @@ const wifiHelper = {
         }
     },
 
+    getUniiCode: function (freq) {
+        if (freq < 5150) {
+            return "N/A";
+        } else if (freq < 5250) {
+            return "U-NII-1";
+        } else if (freq < 5350) {
+            return "U-NII-2A";
+        } else if (freq < 5470) {
+            return "U-NII-2B";
+        } else if (freq < 5725) {
+            return "U-NII-2C";
+        } else if (freq < 5850) {
+            return "U-NII-3";
+        } else if (freq < 5925) {
+            return "U-NII-4";
+        } else if (freq < 6425) {
+            return "U-NII-5";
+        } else if (freq < 6525) {
+            return "U-NII-6";
+        } else if (freq < 6875) {
+            return "U-NII-7";
+        } else if (freq < 7125) {
+            return "U-NII-8";
+        } else {
+            return "N/A";
+        }
+    },
+
     freqWidthToChannelNum: function (freq, width) {
         if (freq >= 5955) {
             // 6 GHz

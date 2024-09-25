@@ -99,7 +99,7 @@ block content
                     input#previewGpsEnd.form-control(disabled readonly type='text')
                   .p-2
                     button.btn.btn-primary(type='button' data-bs-dismiss='modal' aria-label='Close')= 'Select coordinates'
-              #vizBox.row.pt-3
+              #vizBoxCell.row.pt-3
                 .d-flex.align-items-end.justify-content-center
                   .p-2
                     label(for='opSelect')= 'Operator'
@@ -122,7 +122,33 @@ block content
                       input#statRadioMean.btn-check(type='radio' name='statRadio' value='mean' autocomplete='off')
                       label.btn.btn-outline-primary(for='statRadioMean')= 'Mean'
                   .p-2
-                    button.btn.btn-primary(type='button' onclick='submitMapFilter()')= 'Submit'
+                    button.btn.btn-primary(type='button' onclick='submitMapFilterCell()')= 'Submit'
+              #vizBoxWifi.row.pt-3
+                .d-flex.align-items-end.justify-content-center
+                  // .p-2
+                  //  label(for='wifiFreqSelect')= 'Frequency'
+                  //  select#wifiFreqSelect.form-control.form-select(aria-label='Frequency')
+                  .p-2
+                    label(for='wifiFreqSelect')= 'Technology'
+                    #wifiFreqSelect.form-control.btn-group.p-0(role='group' aria-label='Technology')
+                      input#wifiFreqRadio2_4.btn-check(type='radio' name='wifiFreqRadio' value='2.4' autocomplete='off' checked)
+                      label.btn.btn-outline-primary(for='wifiFreqRadio2_4')= '2.4 GHz'
+                      input#wifiFreqRadio5.btn-check(type='radio' name='wifiFreqRadio' value='5' autocomplete='off')
+                      label.btn.btn-outline-primary(for='wifiFreqRadio5')= '5 GHz'
+                      input#wifiFreqRadio6.btn-check(type='radio' name='wifiFreqRadio' value='6' autocomplete='off')
+                      label.btn.btn-outline-primary(for='wifiFreqRadio6')= '6 GHz'
+                  .p-2
+                    label(for='uniiSelect')= 'U-NII Band'
+                    select#uniiSelect.form-control.form-select(aria-label='U-NII Band')
+                  .p-2
+                    label(for='statSelect')= 'Statistic'
+                    #statSelect.form-control.btn-group.p-0(role='group' aria-label='Statistic')
+                      input#statRadioMax.btn-check(type='radio' name='statRadio' value='max' autocomplete='off' checked)
+                      label.btn.btn-outline-primary(for='statRadioMax')= 'Max'
+                      input#statRadioMean.btn-check(type='radio' name='statRadio' value='mean' autocomplete='off')
+                      label.btn.btn-outline-primary(for='statRadioMean')= 'Mean'
+                  .p-2
+                    button.btn.btn-primary(type='button' onclick='submitMapFilterWifi()')= 'Submit'
 
   script(src='/javascripts/index.js')
   script(async defer src='https://maps.googleapis.com/maps/api/js?key=AIzaSyAcp-79zLw4hn8uA4HRJsWrRhvQQIp3ep4&loading=async&callback=initMap&libraries=visualization,drawing')
