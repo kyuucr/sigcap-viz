@@ -80,87 +80,22 @@ async function importZip(inputPath) {
   } else {
     zipFilesFound = await utils.rglob(inputPath, /\.zip$/);
   }
-  let totalCount = zipFilesFound.length;
-  let totalFail = 0;
   console.log(`# of zipfiles= ${zipFilesFound.length}`);
 
-  let fileIdx = 1;
-  for (const zipFilePath of zipFilesFound) {
-    const fn = path.basename(zipFilePath, ".zip");
-    console.log(`(${fileIdx}/${totalCount}) Reading ${fn} ...`);
-
-    const extracted = await utils.readZip(zipFilePath);
-    if (extracted.length === 0) {
-      totalFail += 1;
-    } else {
-      console.log(`# of zip entries= ${extracted.length}`);
-      let numInsertFail = await fp.psqlInsertData(fn, extracted);
-      if (numInsertFail > 0) {
-        totalFail += 1;
-      }
-    }
-    fileIdx += 1;
-  }
-  console.log(`Import done ! Total failure rate = ${(totalFail / totalCount * 100).toFixed(2)}%`)
+  await fp.processZipFiles(zipFilesFound, zipFilesFound);
+  console.log(`Import done !`)
 }
 
 async function updateFbase () {
   // Fetch postgresql and firebase files and compare
-  const psqlFiles = await fp.psqlFetchFiles();
-  let fbaseFiles = [];
-  if (values["no-filter"]) {
-    console.log(`WARNING: fetching all files without filter !`)
-    fbaseFiles = fbaseFiles.concat((await fp.fbaseListFiles())
-      .filter(val => {
-        return !psqlFiles.includes(path.basename(val.name, ".zip"));
-      })
-    );
-  } else {
-    // Get last timestamp to filter firebase query
-    const lastTimestamp = await fp.psqlLastTimestamp();
-    console.log(`Last timestamp= ${lastTimestamp}`);
-
-    // Use last and this month only
-    const fbaseFiltersBase = lastTimestamp.getFullYear() + "/"
-    const fbaseFilters = [
-      fbaseFiltersBase + (lastTimestamp.getMonth()).toString().padStart(2, "0"),
-      fbaseFiltersBase + (lastTimestamp.getMonth() + 1).toString().padStart(2, "0")
-    ];
-    console.log(`Using filters= ${fbaseFilters.join(", ")}`);
-
-    for (let filter of fbaseFilters) {
-      fbaseFiles = fbaseFiles.concat((await fp.fbaseListFiles(filter))
-        .filter(val => {
-          return !psqlFiles.includes(path.basename(val.name, ".zip"))
-        })
-      );
-    }
-  }
+  const fbaseFiles = await fp.fbaseListFilesExternal(values["no-filter"]);
   // console.log(fbaseFiles.map(val => val.name).join("\n"));
   console.log(`# of zipfiles= ${fbaseFiles.length}`);
 
-  let totalCount = fbaseFiles.length;
-  let totalFail = 0;
   if (fbaseFiles.length > 0) {
     const response = await fp.fbaseDownload(fbaseFiles);
-    let fileIdx = 1
-    for (let zipFileBuffer of response) {
-      const fn = path.basename(fbaseFiles[fileIdx - 1].name, ".zip");
-      console.log(`(${fileIdx}/${totalCount}) Reading ${fn} ...`);
-
-      const extracted = await utils.readZip(zipFileBuffer);
-      if (extracted.length === 0) {
-        totalFail += 1;
-      } else {
-        console.log(`# of zip entries= ${extracted.length}`);
-        let numInsertFail = await fp.psqlInsertData(fn, extracted);
-        if (numInsertFail > 0) {
-          totalFail += 1;
-        }
-      }
-      fileIdx += 1;
-    }
+    await fp.processZipFiles(response, fbaseFiles.map(val => val.name))
   }
 
-  console.log(`Import done ! Total failure rate = ${(totalFail / totalCount * 100).toFixed(2)}%`);
+  console.log(`Import done !`);
 }

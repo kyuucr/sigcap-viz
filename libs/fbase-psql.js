@@ -513,6 +513,47 @@ WHERE ${createFilter(params)};`;
     }
   },
 
+  fbaseListFilesExternal: async function (noFilter) {
+    const psqlFiles = await this.psqlFetchFiles();
+    let fbaseFiles = [];
+    if (noFilter) {
+      console.log(`WARNING: fetching all files without filter !`)
+      fbaseFiles = fbaseFiles.concat((await this.fbaseListFiles())
+        .filter(val => {
+          return !psqlFiles.includes(path.basename(val.name, ".zip"));
+        })
+      );
+    } else {
+      // Get (last timestamp - 1 month) to filter firebase query
+      const lastTimestamp = (await this.psqlLastTimestamp())
+      console.log(`Last timestamp= ${lastTimestamp}`);
+      lastTimestamp.setMonth(lastTimestamp.getMonth() - 1);
+      // Get relaxed (now timestamp + 1 month)
+      // This may query future +1 month data, but it should return none
+      const nowTimestamp = new Date();
+      nowTimestamp.setMonth(nowTimestamp.getMonth() + 1);
+
+      // Create "YYYY/MM" string for months between lastTimestamp and now
+      let currentTimestamp = new Date(lastTimestamp);
+      const fbaseFilters = [];
+      while (currentTimestamp <= nowTimestamp) {
+        fbaseFilters.push(`${currentTimestamp.getFullYear()}/${(currentTimestamp.getMonth() + 1).toString().padStart(2, "0")}`);
+        currentTimestamp.setMonth(currentTimestamp.getMonth() + 1);
+      }
+      console.log(`Using filters= ${fbaseFilters.join(", ")}`);
+
+      for (let filter of fbaseFilters) {
+        fbaseFiles = fbaseFiles.concat((await this.fbaseListFiles(filter))
+          .filter(val => {
+            return !psqlFiles.includes(path.basename(val.name, ".zip"));
+          })
+        );
+      }
+    }
+
+    return fbaseFiles;
+  },
+
   fbaseListFiles: async function (filterStr = "*/*/") {
     if (!filterStr.endsWith("/")) {
       filterStr += "/";
@@ -529,7 +570,41 @@ WHERE ${createFilter(params)};`;
     const response = (await transferManager.downloadManyFiles(files))
       .map(val => val[0]);
     return response;
-  }
+  },
+
+  processZipFiles: async function (pathOrBufferArr, fnArr) {
+    console.log(typeof pathOrBufferArr[0])
+    if (fnArr === undefined) {
+      if (typeof pathOrBufferArr[0] === "string") {
+        fnArr = pathOrBufferArr;
+      } else {
+        throw new Error ("Must define fnArr !")
+      }
+    }
+
+    let totalCount = pathOrBufferArr.length;
+    let totalFail = 0;
+    let fileIdx = 1
+    for (let pathOrBuffer of pathOrBufferArr) {
+      const fn = path.basename(fnArr[fileIdx - 1], ".zip");
+      console.log(`(${fileIdx}/${totalCount}) Reading ${fn} ...`);
+
+      const extracted = await utils.readZip(pathOrBuffer);
+      if (extracted.length === 0) {
+        totalFail += 1;
+      } else {
+        console.log(`# of zip entries= ${extracted.length}`);
+        let numInsertFail = await fp.psqlInsertData(fn, extracted);
+        if (numInsertFail > 0) {
+          totalFail += 1;
+        }
+      }
+      fileIdx += 1;
+    }
+
+    console.log(`Total failure rate = ${(totalFail / totalCount * 100).toFixed(2)}%`);
+    return totalFail;
+  },
 
 }
 

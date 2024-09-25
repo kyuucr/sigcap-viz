@@ -185,57 +185,20 @@ router.route("/")
         res.status(500).send("Still in update process !");
       } else {
         isUpdating = true;
+
         // Fetch postgresql and firebase files and compare
-        const psqlFiles = await fp.psqlFetchFiles();
-        let fbaseFiles = [];
-        // Get last timestamp to filter firebase query
-        const lastTimestamp = await fp.psqlLastTimestamp();
-        console.log(`Last timestamp= ${lastTimestamp}`);
-
-        // Use last and this month only
-        const fbaseFiltersBase = lastTimestamp.getFullYear() + "/"
-        const fbaseFilters = [
-          fbaseFiltersBase + (lastTimestamp.getMonth()).toString().padStart(2, "0"),
-          fbaseFiltersBase + (lastTimestamp.getMonth() + 1).toString().padStart(2, "0")
-        ];
-        console.log(`Using filters= ${fbaseFilters.join(", ")}`);
-
-        for (let filter of fbaseFilters) {
-          fbaseFiles = fbaseFiles.concat((await fp.fbaseListFiles(filter))
-            .filter(val => {
-              return !psqlFiles.includes(path.basename(val.name, ".zip"))
-            })
-          );
-        }
+        const fbaseFiles = await fp.fbaseListFilesExternal(false);
         // console.log(fbaseFiles.map(val => val.name).join("\n"));
         console.log(`# of zipfiles= ${fbaseFiles.length}`);
 
-        let totalCount = fbaseFiles.length;
         let totalFail = 0;
         if (fbaseFiles.length > 0) {
           const response = await fp.fbaseDownload(fbaseFiles);
-          let fileIdx = 1
-          for (let zipFileBuffer of response) {
-            const fn = path.basename(fbaseFiles[fileIdx - 1].name, ".zip");
-            console.log(`(${fileIdx}/${totalCount}) Reading ${fn} ...`);
-
-            const extracted = await utils.readZip(zipFileBuffer);
-            if (extracted.length === 0) {
-              totalFail += 1;
-            } else {
-              console.log(`# of zip entries= ${extracted.length}`);
-              let numInsertFail = await fp.psqlInsertData(fn, extracted);
-              if (numInsertFail > 0) {
-                totalFail += 1;
-              }
-            }
-            fileIdx += 1;
-          }
+          totalFail = await fp.processZipFiles(response, fbaseFiles.map(val => val.name))
         }
 
-        console.log(`Import done ! Total failure rate = ${(totalFail / totalCount * 100).toFixed(2)}%`);
         isUpdating = false;
-        res.status(200).send(`Update finished ! # new files= ${totalCount}`);
+        res.status(200).send(`Update finished ! # new files= ${fbaseFiles.length - totalFail}`);
       }
 
     } else {
