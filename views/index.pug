@@ -101,6 +101,23 @@ block content
                     button.btn.btn-primary(type='button' data-bs-dismiss='modal' aria-label='Close')= 'Select coordinates'
               #vizBoxCell.row.pt-3
                 .d-flex.align-items-end.justify-content-center
+                  .ps-2.pb-2.pe-1
+                    .legend.d-flex.flex-column.align-items-center
+                      .legendGradient
+                        .gradientWifi
+                      .legend-tick-container.d-flex.justify-content-between
+                        .legend-tick
+                        .legend-tick
+                        .legend-tick
+                        .legend-tick
+                        .legend-tick
+                      .legend-label-container.d-flex.justify-content-between
+                        .legend-label= '-140'
+                        .legend-label= '-120'
+                        .legend-label= '-100'
+                        .legend-label= '-80'
+                        .legend-label= '-60'
+                  .pb-2.pe-2(style='font-size: 16px')= 'dBm'
                   .p-2
                     label(for='opSelect')= 'Operator'
                     select#opSelect.form-control.form-select(aria-label='Operator')
@@ -125,9 +142,23 @@ block content
                     button.btn.btn-primary(type='button' onclick='submitMapFilterCell()')= 'Submit'
               #vizBoxWifi.row.pt-3
                 .d-flex.align-items-end.justify-content-center
-                  // .p-2
-                  //  label(for='wifiFreqSelect')= 'Frequency'
-                  //  select#wifiFreqSelect.form-control.form-select(aria-label='Frequency')
+                  .ps-2.pb-2.pe-1
+                    .legend.d-flex.flex-column.align-items-center
+                      .legendGradient
+                        .gradientWifi
+                      .legend-tick-container.d-flex.justify-content-between
+                        .legend-tick
+                        .legend-tick
+                        .legend-tick
+                        .legend-tick
+                        .legend-tick
+                      .legend-label-container.d-flex.justify-content-between
+                        .legend-label= '-90'
+                        .legend-label= '-80'
+                        .legend-label= '-70'
+                        .legend-label= '-60'
+                        .legend-label= '-50'
+                  .pb-2.pe-2(style='font-size: 16px')= 'dBm'
                   .p-2
                     label(for='wifiFreqSelect')= 'Technology'
                     #wifiFreqSelect.form-control.btn-group.p-0(role='group' aria-label='Technology')

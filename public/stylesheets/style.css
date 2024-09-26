@@ -2,3 +2,36 @@
   height: 1000px;
   width: 100%;
 }
+
+.legend {
+  width: 330px;
+}
+
+.legendGradient {
+  width: 315px;
+  border: solid 1px #6c757d;
+}
+
+.gradientCell,
+.gradientWifi {
+  height: 18px;
+  background: -webkit-linear-gradient(left, rgba(163,0,0,0.4), rgba(255,255,0,0.4), rgba(56,200,56,0.4));
+  background: -moz-linear-gradient(left, rgba(163,0,0,0.4), rgba(255,255,0,0.4), rgba(56,200,56,0.4));
+  background: -o-linear-gradient(left, rgba(163,0,0,0.4), rgba(255,255,0,0.4), rgba(56,200,56,0.4));
+  background: linear-gradient(left, rgba(163,0,0,0.4), rgba(255,255,0,0.4), rgba(56,200,56,0.4));
+}
+
+.legend-tick-container {
+  width: 315px;
+}
+
+.legend-label-container {
+  width: 330px;
+}
+
+.legend-tick {
+  font-size: 16px;
+  width: 1px;
+  height: 6px;
+  background: black;
+}
