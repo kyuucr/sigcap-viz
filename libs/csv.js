@@ -1080,6 +1080,7 @@ const csv = {
       tempOut["tx_power_dbm"] = "NaN";
       tempOut["link_margin_db"] = "NaN";
       tempOut["alphanumeric_ap_name"] = "unknown";
+      tempOut["6ghz_type"] = "unknown";
     }
 
     for (let wifiEntry of entry.wifi_info) {
@@ -1150,6 +1151,7 @@ const csv = {
       tempOut["tx_power_dbm"] = utils.cleanSignal(wifiEntry.txPower);
       tempOut["link_margin_db"] = utils.cleanSignal(wifiEntry.linkMargin);
       tempOut["alphanumeric_ap_name"] = wifiEntry.apName ? wifiEntry.apName : "unknown";
+      tempOut["6ghz_ap_type"] = wifiHelper.get6GhzApType(wifiEntry);
 
       outputArr.push(tempOut);
     }
