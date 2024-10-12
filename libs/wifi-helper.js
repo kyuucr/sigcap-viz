@@ -272,8 +272,8 @@ const wifiHelper = {
   },
 
   get6GhzApType: function (wifiEntry) {
-    if (wifiEntry["6GhzApType"]) {
-      return wifiEntry["6GhzApType"];
+    if (wifiEntry["6GHzApType"]) {
+      return wifiEntry["6GHzApType"];
     } else if (wifiEntry.rawInfoElem) {
       const rawBytes = getInfoElemBytes(wifiEntry.rawInfoElem, 255, 36);
       if (rawBytes.length === 0) {
