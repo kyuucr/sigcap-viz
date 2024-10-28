@@ -185,6 +185,7 @@ let drawingManager = null;
 
 const mapModal = new bootstrap.Modal(document.getElementById("mapModal"));
 const spinnerModal = new bootstrap.Modal(document.getElementById("spinnerModal"));
+const mlModal = new bootstrap.Modal(document.getElementById("mlModal"));
 const selectedFiles = [];
 let totalEntries = 0;
 let mapMode = "selectCoord";
@@ -388,8 +389,10 @@ function getFilterObj(){
   return filterObj;
 }
 
-function fetchFiles(mode) {
-  let filterObj = getFilterObj();
+function fetchFiles(mode, filterObj = null) {
+  if (filterObj === null) {
+    filterObj = getFilterObj();
+  }
   if (Object.keys(filterObj).length === 0) {
     window.alert("Please make at least one selection: GPS coordinates, date range, or files.");
     return false;
@@ -542,6 +545,28 @@ function initUniiList () {
     mainContainer.appendChild(option);
     first = false;
   }
+}
+
+function showMlOptions() {
+  let filterObj = getFilterObj();
+  if (Object.keys(filterObj).length === 0) {
+    window.alert("Please make at least one selection: GPS coordinates, date range, or files.");
+    return false;
+  }
+
+  mlModal.show();
+}
+
+function submitMlOptions() {
+  mlModal.hide();
+  let filterObj = getFilterObj();
+  if (Object.keys(filterObj).length === 0) {
+    window.alert("Please make at least one selection: GPS coordinates, date range, or files.");
+    return false;
+  }
+  filterObj.intervalSec = parseInt(document.getElementById("mlOptionAggIntervalInput").value);
+  filterObj.aggMethod = document.getElementById("mlOptionAggMethodSelect").value;
+  fetchFiles("ml", filterObj);
 }
 
 function updateFbase() {

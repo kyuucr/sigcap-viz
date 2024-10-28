@@ -35,6 +35,16 @@ router.route("/")
         res.send(out);
       }
 
+    } else if (command === "ml") {
+      const data = await fp.psqlFetchJson(params);
+      if (data.length === 0) {
+        res.status(404).send("No data within the selected query !");
+      } else {
+        let mlJson = csv.ml(data, params.aggMethod, params.intervalSec);
+        console.log(`# ML entries= ${mlJson.length}`);
+        res.send(csv.toCsv(mlJson));
+      }
+
     } else if (command === "cellular") {
       const data = await fp.psqlFetchJson(params);
       console.log(`# of data= ${data.length}`);

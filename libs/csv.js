@@ -4,6 +4,591 @@ const wifiHelper = require("./wifi-helper")
 const math = require("mathjs")
 
 
+function extractMean(entry) {
+  const lteValid = entry.cell_info.map(val => {
+    return {
+      freq: cellHelper.earfcnToFreq(val.earfcn),
+      rsrp: utils.cleanSignal(val.rsrp),
+      rsrq: utils.cleanSignal(val.rsrq),
+      rssi: utils.cleanSignal(val.rssi)
+    };
+  }).filter(val => {
+    return !Object.values(val).includes("NaN");
+  });
+  // f1: freq < 1000
+  let lteF1 = lteValid.filter(val => val.freq < 1000);
+  // f2: 1000 < freq < 10000
+  let lteF2 = lteValid.filter(val => val.freq > 1000 && val.freq < 10000);
+
+  const nrValid = entry.nr_info.map(val => {
+    return {
+      freq: cellHelper.nrarfcnToFreq(val.nrarfcn),
+      rsrp: utils.cleanSignal(val.ssRsrp),
+      rsrq: utils.cleanSignal(val.ssRsrq),
+      sinr: utils.cleanSignal(val.ssSinr)
+    };
+  }).filter(val => {
+    return !Object.values(val).includes("NaN");
+  });
+  let nrF1 = nrValid.filter(val => val.freq < 1000);
+  let nrF2 = nrValid.filter(val => val.freq > 1000 && val.freq < 10000);
+
+  const wifiValid = entry.wifi_info.map(val => {
+    return {
+      primaryFreq: utils.cleanSignal(val.primaryFreq),
+      rssi: utils.cleanSignal(val.rssi)
+    };
+  }).filter(val => {
+    return !Object.values(val).includes("NaN");
+  });
+  let wifi2_4 = wifiValid.filter(val => val.primaryFreq < 5000);
+  let wifi5 = wifiValid.filter(val => val.primaryFreq > 5000 && val.primaryFreq <= 5925);
+  let wifi6 = wifiValid.filter(val => val.primaryFreq > 5925);
+
+  let out = {
+    "hor_acc": entry.location.hor_acc,
+    "ver_acc": entry.location.ver_acc,
+    "num_of_lte_cell": lteValid.length,
+    "lte_num_of_f1": lteF1.length,
+    "lte_num_of_f2": lteF2.length,
+    "num_of_nr_cell": nrValid.length,
+    "nr_num_of_f1": nrF1.length,
+    "nr_num_of_f2": nrF2.length,
+    "num_of_wifi_2_4": wifi2_4.length,
+    "num_of_wifi_5": wifi5.length,
+    "num_of_wifi_6": wifi6.length,
+  };
+
+  /////////
+  // LTE //
+  /////////
+
+  if (lteF1.length > 0) {
+    const lteF1Rssi = lteF1.map(val => val.rssi);
+    out["lte_avg_rssi_f1"] = utils.mwToDbm(math.mean(utils.dbmToMw(lteF1Rssi)));
+    out["lte_max_rssi_f1"] = math.max(lteF1Rssi);
+    out["lte_min_rssi_f1"] = math.min(lteF1Rssi);
+    out["lte_std_rssi_f1"] = utils.mwToDbm(math.std(utils.dbmToMw(lteF1Rssi)));
+
+    const lteF1Rsrp = lteF1.map(val => val.rsrp);
+    out["lte_avg_rsrp_f1"] = utils.mwToDbm(math.mean(utils.dbmToMw(lteF1Rsrp)));
+    out["lte_max_rsrp_f1"] = math.max(lteF1Rsrp);
+    out["lte_min_rsrp_f1"] = math.min(lteF1Rsrp);
+    out["lte_std_rsrp_f1"] = utils.mwToDbm(math.std(utils.dbmToMw(lteF1Rsrp)));
+
+    const lteF1Rsrq = lteF1.map(val => val.rsrq);
+    out["lte_avg_rsrq_f1"] = utils.mwToDbm(math.mean(utils.dbmToMw(lteF1Rsrq)));
+    out["lte_max_rsrq_f1"] = math.max(lteF1Rsrq);
+    out["lte_min_rsrq_f1"] = math.min(lteF1Rsrq);
+    out["lte_std_rsrq_f1"] = utils.mwToDbm(math.std(utils.dbmToMw(lteF1Rsrq)));
+  } else {
+    out["lte_avg_rssi_f1"] = "NaN";
+    out["lte_max_rssi_f1"] = "NaN";
+    out["lte_min_rssi_f1"] = "NaN";
+    out["lte_std_rssi_f1"] = "NaN";
+    out["lte_avg_rsrp_f1"] = "NaN";
+    out["lte_max_rsrp_f1"] = "NaN";
+    out["lte_min_rsrp_f1"] = "NaN";
+    out["lte_std_rsrp_f1"] = "NaN";
+    out["lte_avg_rsrq_f1"] = "NaN";
+    out["lte_max_rsrq_f1"] = "NaN";
+    out["lte_min_rsrq_f1"] = "NaN";
+    out["lte_std_rsrq_f1"] = "NaN";
+  }
+
+  if (lteF2.length > 0) {
+    const lteF2Rssi = lteF2.map(val => val.rssi);
+    out["lte_avg_rssi_f2"] = utils.mwToDbm(math.mean(utils.dbmToMw(lteF2Rssi)));
+    out["lte_max_rssi_f2"] = math.max(lteF2Rssi);
+    out["lte_min_rssi_f2"] = math.min(lteF2Rssi);
+    out["lte_std_rssi_f2"] = utils.mwToDbm(math.std(utils.dbmToMw(lteF2Rssi)));
+
+    const lteF2Rsrp = lteF2.map(val => val.rsrp);
+    out["lte_avg_rsrp_f2"] = utils.mwToDbm(math.mean(utils.dbmToMw(lteF2Rsrp)));
+    out["lte_max_rsrp_f2"] = math.max(lteF2Rsrp);
+    out["lte_min_rsrp_f2"] = math.min(lteF2Rsrp);
+    out["lte_std_rsrp_f2"] = utils.mwToDbm(math.std(utils.dbmToMw(lteF2Rsrp)));
+
+    const lteF2Rsrq = lteF2.map(val => val.rsrq);
+    out["lte_avg_rsrq_f2"] = utils.mwToDbm(math.mean(utils.dbmToMw(lteF2Rsrq)));
+    out["lte_max_rsrq_f2"] = math.max(lteF2Rsrq);
+    out["lte_min_rsrq_f2"] = math.min(lteF2Rsrq);
+    out["lte_std_rsrq_f2"] = utils.mwToDbm(math.std(utils.dbmToMw(lteF2Rsrq)));
+  } else {
+    out["lte_avg_rssi_f2"] = "NaN";
+    out["lte_max_rssi_f2"] = "NaN";
+    out["lte_min_rssi_f2"] = "NaN";
+    out["lte_std_rssi_f2"] = "NaN";
+    out["lte_avg_rsrp_f2"] = "NaN";
+    out["lte_max_rsrp_f2"] = "NaN";
+    out["lte_min_rsrp_f2"] = "NaN";
+    out["lte_std_rsrp_f2"] = "NaN";
+    out["lte_avg_rsrq_f2"] = "NaN";
+    out["lte_max_rsrq_f2"] = "NaN";
+    out["lte_min_rsrq_f2"] = "NaN";
+    out["lte_std_rsrq_f2"] = "NaN";
+  }
+
+  ////////
+  // NR //
+  ////////
+
+  if (nrF1.length > 0) {
+    const nrF1Sinr = nrF1.map(val => val.sinr);
+    out["nr_avg_sinr_f1"] = utils.mwToDbm(math.mean(utils.dbmToMw(nrF1Sinr)));
+    out["nr_max_sinr_f1"] = math.max(nrF1Sinr);
+    out["nr_min_sinr_f1"] = math.min(nrF1Sinr);
+    out["nr_std_sinr_f1"] = utils.mwToDbm(math.std(utils.dbmToMw(nrF1Sinr)));
+
+    const nrF1Rsrp = nrF1.map(val => val.rsrp);
+    out["nr_avg_rsrp_f1"] = utils.mwToDbm(math.mean(utils.dbmToMw(nrF1Rsrp)));
+    out["nr_max_rsrp_f1"] = math.max(nrF1Rsrp);
+    out["nr_min_rsrp_f1"] = math.min(nrF1Rsrp);
+    out["nr_std_rsrp_f1"] = utils.mwToDbm(math.std(utils.dbmToMw(nrF1Rsrp)));
+
+    const nrF1Rsrq = nrF1.map(val => val.rsrq);
+    out["nr_avg_rsrq_f1"] = utils.mwToDbm(math.mean(utils.dbmToMw(nrF1Rsrq)));
+    out["nr_max_rsrq_f1"] = math.max(nrF1Rsrq);
+    out["nr_min_rsrq_f1"] = math.min(nrF1Rsrq);
+    out["nr_std_rsrq_f1"] = utils.mwToDbm(math.std(utils.dbmToMw(nrF1Rsrq)));
+  } else {
+    out["nr_avg_sinr_f1"] = "NaN";
+    out["nr_max_sinr_f1"] = "NaN";
+    out["nr_min_sinr_f1"] = "NaN";
+    out["nr_std_sinr_f1"] = "NaN";
+    out["nr_avg_rsrp_f1"] = "NaN";
+    out["nr_max_rsrp_f1"] = "NaN";
+    out["nr_min_rsrp_f1"] = "NaN";
+    out["nr_std_rsrp_f1"] = "NaN";
+    out["nr_avg_rsrq_f1"] = "NaN";
+    out["nr_max_rsrq_f1"] = "NaN";
+    out["nr_min_rsrq_f1"] = "NaN";
+    out["nr_std_rsrq_f1"] = "NaN";
+  }
+
+  if (nrF2.length > 0) {
+    const nrF2Sinr = nrF2.map(val => val.sinr);
+    out["nr_avg_sinr_f2"] = utils.mwToDbm(math.mean(utils.dbmToMw(nrF2Sinr)));
+    out["nr_max_sinr_f2"] = math.max(nrF2Sinr);
+    out["nr_min_sinr_f2"] = math.min(nrF2Sinr);
+    out["nr_std_sinr_f2"] = utils.mwToDbm(math.std(utils.dbmToMw(nrF2Sinr)));
+
+    const nrF2Rsrp = nrF2.map(val => val.rsrp);
+    out["nr_avg_rsrp_f2"] = utils.mwToDbm(math.mean(utils.dbmToMw(nrF2Rsrp)));
+    out["nr_max_rsrp_f2"] = math.max(nrF2Rsrp);
+    out["nr_min_rsrp_f2"] = math.min(nrF2Rsrp);
+    out["nr_std_rsrp_f2"] = utils.mwToDbm(math.std(utils.dbmToMw(nrF2Rsrp)));
+
+    const nrF2Rsrq = nrF2.map(val => val.rsrq);
+    out["nr_avg_rsrq_f2"] = utils.mwToDbm(math.mean(utils.dbmToMw(nrF2Rsrq)));
+    out["nr_max_rsrq_f2"] = math.max(nrF2Rsrq);
+    out["nr_min_rsrq_f2"] = math.min(nrF2Rsrq);
+    out["nr_std_rsrq_f2"] = utils.mwToDbm(math.std(utils.dbmToMw(nrF2Rsrq)));
+  } else {
+    out["nr_avg_sinr_f2"] = "NaN";
+    out["nr_max_sinr_f2"] = "NaN";
+    out["nr_min_sinr_f2"] = "NaN";
+    out["nr_std_sinr_f2"] = "NaN";
+    out["nr_avg_rsrp_f2"] = "NaN";
+    out["nr_max_rsrp_f2"] = "NaN";
+    out["nr_min_rsrp_f2"] = "NaN";
+    out["nr_std_rsrp_f2"] = "NaN";
+    out["nr_avg_rsrq_f2"] = "NaN";
+    out["nr_max_rsrq_f2"] = "NaN";
+    out["nr_min_rsrq_f2"] = "NaN";
+    out["nr_std_rsrq_f2"] = "NaN";
+  }
+
+  //////////
+  // WiFi //
+  //////////
+
+  if (wifi2_4.length > 0) {
+    const wifi2_4Rssi = wifi2_4.map(val => val.rssi);
+    out["avg_rssi_of_wifi_2_4"] = utils.mwToDbm(math.mean(utils.dbmToMw(wifi2_4Rssi)));
+    out["max_of_wifi_2_4"] = math.max(wifi2_4Rssi);
+    out["min_of_wifi_2_4"] = math.min(wifi2_4Rssi);
+    out["std_wifi_2_4_rssi"] = utils.mwToDbm(math.std(utils.dbmToMw(wifi2_4Rssi)));
+  } else {
+    out["avg_rssi_of_wifi_2_4"] = "NaN";
+    out["max_of_wifi_2_4"] = "NaN";
+    out["min_of_wifi_2_4"] = "NaN";
+    out["std_wifi_2_4_rssi"] = "NaN";
+  }
+
+  if (wifi5.length > 0) {
+    const wifi5Rssi = wifi5.map(val => val.rssi);
+    out["avg_rssi_of_wifi_5"] = utils.mwToDbm(math.mean(utils.dbmToMw(wifi5Rssi)));
+    out["max_of_wifi_5"] = math.max(wifi5Rssi);
+    out["min_of_wifi_5"] = math.min(wifi5Rssi);
+    out["std_wifi_5_rssi"] = utils.mwToDbm(math.std(utils.dbmToMw(wifi5Rssi)));
+  } else {
+    out["avg_rssi_of_wifi_5"] = "NaN";
+    out["max_of_wifi_5"] = "NaN";
+    out["min_of_wifi_5"] = "NaN";
+    out["std_wifi_5_rssi"] = "NaN";
+  }
+
+  if (wifi6.length > 0) {
+    const wifi6Rssi = wifi6.map(val => val.rssi);
+    out["avg_rssi_of_wifi_6"] = utils.mwToDbm(math.mean(utils.dbmToMw(wifi6Rssi)));
+    out["max_of_wifi_6"] = math.max(wifi6Rssi);
+    out["min_of_wifi_6"] = math.min(wifi6Rssi);
+    out["std_wifi_6_rssi"] = utils.mwToDbm(math.std(utils.dbmToMw(wifi6Rssi)));
+  } else {
+    out["avg_rssi_of_wifi_6"] = "NaN";
+    out["max_of_wifi_6"] = "NaN";
+    out["min_of_wifi_6"] = "NaN";
+    out["std_wifi_6_rssi"] = "NaN";
+  }
+
+  return out;
+}
+
+const linearKeys = [
+  "hor_acc",
+  "ver_acc",
+  "num_of_lte_cell",
+  "lte_num_of_f1",
+  "lte_num_of_f2",
+  "num_of_nr_cell",
+  "nr_num_of_f1",
+  "nr_num_of_f2",
+  "num_of_wifi_2_4",
+  "num_of_wifi_5",
+  "num_of_wifi_6"
+];
+
+function reduceMean(extracted, out) {
+  const keys = Object.keys(extracted[0]);
+  for (let key of keys) {
+    // TODO: Check with Hossein regarding NaN and -Infinity values
+    const validVals = extracted.map(val => val[key]).filter(
+      val => val !== "NaN" && val !== -Infinity);
+    if (validVals.length === 0) {
+      out[key] = 0;
+    } else if (linearKeys.includes(key)) {
+      out[key] = math.mean(validVals);
+    } else {
+      // Key contains logarithmic value
+      out[key] = utils.mwToDbm(
+        math.mean(utils.dbmToMw(validVals)));
+    }
+  }
+
+  return out;
+}
+
+function extractConcat(entry) {
+  const lteValid = entry.cell_info.map(val => {
+    return {
+      freq: cellHelper.earfcnToFreq(val.earfcn),
+      pci: utils.cleanSignal(val.pci),
+      rsrp: utils.cleanSignal(val.rsrp),
+      rsrq: utils.cleanSignal(val.rsrq),
+      rssi: utils.cleanSignal(val.rssi)
+    };
+  }).filter(val => {
+    return !Object.values(val).includes("NaN");
+  });
+  // f1: freq < 1000
+  let lteF1 = lteValid.filter(val => val.freq < 1000);
+  // f2: 1000 < freq < 10000
+  let lteF2 = lteValid.filter(val => val.freq > 1000 && val.freq < 10000);
+
+  const nrValid = entry.nr_info.map(val => {
+    return {
+      freq: cellHelper.nrarfcnToFreq(val.nrarfcn),
+      pci: utils.cleanSignal(val.nrPci),
+      rsrp: utils.cleanSignal(val.ssRsrp),
+      rsrq: utils.cleanSignal(val.ssRsrq),
+      sinr: utils.cleanSignal(val.ssSinr)
+    };
+  }).filter(val => {
+    return !Object.values(val).includes("NaN");
+  });
+  let nrF1 = nrValid.filter(val => val.freq < 1000);
+  let nrF2 = nrValid.filter(val => val.freq > 1000 && val.freq < 10000);
+
+  const wifiValid = entry.wifi_info.map(val => {
+    return {
+      primaryFreq: utils.cleanSignal(val.primaryFreq),
+      bssid: val.bssid,
+      rssi: utils.cleanSignal(val.rssi)
+    };
+  }).filter(val => {
+    return !Object.values(val).includes("NaN");
+  });
+  let wifi2_4 = wifiValid.filter(val => val.primaryFreq < 5000);
+  let wifi5 = wifiValid.filter(val => val.primaryFreq > 5000 && val.primaryFreq <= 5925);
+  let wifi6 = wifiValid.filter(val => val.primaryFreq > 5925);
+
+  let out = {
+    "hor_acc": entry.location.hor_acc,
+    "ver_acc": entry.location.ver_acc,
+    "lte_f1": lteF1,
+    "lte_f2": lteF2,
+    "nr_f1": nrF1,
+    "nr_f2": nrF2,
+    "wifi_2_4": wifi2_4,
+    "wifi_5": wifi5,
+    "wifi_6": wifi6,
+  };
+
+  return out;
+}
+
+const idKey = {
+  "lte_f1": "pci",
+  "lte_f2": "pci",
+  "nr_f1": "pci",
+  "nr_f2": "pci",
+  "wifi_2_4": "bssid",
+  "wifi_5": "bssid",
+  "wifi_6": "bssid"
+}
+
+function reduceConcat(extracted, out) {
+  const keys = Object.keys(extracted[0]);
+  const tempOut = {};
+  for (const key of keys) {
+    // console.log(key)
+    if (linearKeys.includes(key)) {
+      tempOut[key] = extracted.map(val => val[key]).filter(
+          val => val !== "NaN" && val !== -Infinity);
+    } else {
+      const flattened = extracted.map(val => val[key]).flat();
+      // console.log(flattened)
+      const groupById = Object.groupBy(
+        flattened,
+        entry => entry[idKey[key]]);
+      const meanPerId = Object.values(
+        groupById
+      ).map(entries => {
+        // console.log(entries)
+        const meanOfEntries = {};
+        for (const key in entries[0]) {
+          if (["rssi", "rsrp", "rsrq", "sinr"].includes(key)) {
+            const vals = entries.map(entry => entry[key]);
+            meanOfEntries[key] = utils.mwToDbm(math.mean(utils.dbmToMw(vals)));
+          }
+        }
+        return meanOfEntries;
+      }).filter(val => {
+        return Object.values(val).length > 0;
+      })
+
+      tempOut[key] = meanPerId;
+    }
+  }
+  // console.log(tempOut)
+
+  out["hor_acc"] = math.mean(tempOut["hor_acc"]);
+  out["ver_acc"] = math.mean(tempOut["ver_acc"]);
+  out["num_of_lte_cell"] = tempOut["lte_f1"].length + tempOut["lte_f2"].length;
+  out["lte_num_of_f1"] = tempOut["lte_f1"].length;
+  out["lte_num_of_f2"] = tempOut["lte_f2"].length;
+  out["num_of_nr_cell"] = tempOut["nr_f1"].length + tempOut["nr_f2"].length;;
+  out["nr_num_of_f1"] = tempOut["nr_f1"].length;
+  out["nr_num_of_f2"] = tempOut["nr_f2"].length;
+  out["num_of_wifi_2_4"] = tempOut["wifi_2_4"].length;
+  out["num_of_wifi_5"] = tempOut["wifi_5"].length;
+  out["num_of_wifi_6"] = tempOut["wifi_6"].length;
+
+  /////////
+  // LTE //
+  /////////
+
+  const lteF1 = tempOut["lte_f1"];
+  if (lteF1.length > 0) {
+    const lteF1Rssi = lteF1.map(val => val.rssi);
+    out["lte_avg_rssi_f1"] = utils.mwToDbm(math.mean(utils.dbmToMw(lteF1Rssi)));
+    out["lte_max_rssi_f1"] = math.max(lteF1Rssi);
+    out["lte_min_rssi_f1"] = math.min(lteF1Rssi);
+    out["lte_std_rssi_f1"] = utils.mwToDbm(math.std(utils.dbmToMw(lteF1Rssi)));
+
+    const lteF1Rsrp = lteF1.map(val => val.rsrp);
+    out["lte_avg_rsrp_f1"] = utils.mwToDbm(math.mean(utils.dbmToMw(lteF1Rsrp)));
+    out["lte_max_rsrp_f1"] = math.max(lteF1Rsrp);
+    out["lte_min_rsrp_f1"] = math.min(lteF1Rsrp);
+    out["lte_std_rsrp_f1"] = utils.mwToDbm(math.std(utils.dbmToMw(lteF1Rsrp)));
+
+    const lteF1Rsrq = lteF1.map(val => val.rsrq);
+    out["lte_avg_rsrq_f1"] = utils.mwToDbm(math.mean(utils.dbmToMw(lteF1Rsrq)));
+    out["lte_max_rsrq_f1"] = math.max(lteF1Rsrq);
+    out["lte_min_rsrq_f1"] = math.min(lteF1Rsrq);
+    out["lte_std_rsrq_f1"] = utils.mwToDbm(math.std(utils.dbmToMw(lteF1Rsrq)));
+  } else {
+    out["lte_avg_rssi_f1"] = 0;
+    out["lte_max_rssi_f1"] = 0;
+    out["lte_min_rssi_f1"] = 0;
+    out["lte_std_rssi_f1"] = 0;
+    out["lte_avg_rsrp_f1"] = 0;
+    out["lte_max_rsrp_f1"] = 0;
+    out["lte_min_rsrp_f1"] = 0;
+    out["lte_std_rsrp_f1"] = 0;
+    out["lte_avg_rsrq_f1"] = 0;
+    out["lte_max_rsrq_f1"] = 0;
+    out["lte_min_rsrq_f1"] = 0;
+    out["lte_std_rsrq_f1"] = 0;
+  }
+
+  const lteF2 = tempOut["lte_f2"];
+  if (lteF2.length > 0) {
+    const lteF2Rssi = lteF2.map(val => val.rssi);
+    out["lte_avg_rssi_f2"] = utils.mwToDbm(math.mean(utils.dbmToMw(lteF2Rssi)));
+    out["lte_max_rssi_f2"] = math.max(lteF2Rssi);
+    out["lte_min_rssi_f2"] = math.min(lteF2Rssi);
+    out["lte_std_rssi_f2"] = utils.mwToDbm(math.std(utils.dbmToMw(lteF2Rssi)));
+
+    const lteF2Rsrp = lteF2.map(val => val.rsrp);
+    out["lte_avg_rsrp_f2"] = utils.mwToDbm(math.mean(utils.dbmToMw(lteF2Rsrp)));
+    out["lte_max_rsrp_f2"] = math.max(lteF2Rsrp);
+    out["lte_min_rsrp_f2"] = math.min(lteF2Rsrp);
+    out["lte_std_rsrp_f2"] = utils.mwToDbm(math.std(utils.dbmToMw(lteF2Rsrp)));
+
+    const lteF2Rsrq = lteF2.map(val => val.rsrq);
+    out["lte_avg_rsrq_f2"] = utils.mwToDbm(math.mean(utils.dbmToMw(lteF2Rsrq)));
+    out["lte_max_rsrq_f2"] = math.max(lteF2Rsrq);
+    out["lte_min_rsrq_f2"] = math.min(lteF2Rsrq);
+    out["lte_std_rsrq_f2"] = utils.mwToDbm(math.std(utils.dbmToMw(lteF2Rsrq)));
+  } else {
+    out["lte_avg_rssi_f2"] = 0;
+    out["lte_max_rssi_f2"] = 0;
+    out["lte_min_rssi_f2"] = 0;
+    out["lte_std_rssi_f2"] = 0;
+    out["lte_avg_rsrp_f2"] = 0;
+    out["lte_max_rsrp_f2"] = 0;
+    out["lte_min_rsrp_f2"] = 0;
+    out["lte_std_rsrp_f2"] = 0;
+    out["lte_avg_rsrq_f2"] = 0;
+    out["lte_max_rsrq_f2"] = 0;
+    out["lte_min_rsrq_f2"] = 0;
+    out["lte_std_rsrq_f2"] = 0;
+  }
+
+  ////////
+  // NR //
+  ////////
+
+  const nrF1 = tempOut["nr_f1"];
+  if (nrF1.length > 0) {
+    const nrF1Sinr = nrF1.map(val => val.sinr);
+    out["nr_avg_sinr_f1"] = utils.mwToDbm(math.mean(utils.dbmToMw(nrF1Sinr)));
+    out["nr_max_sinr_f1"] = math.max(nrF1Sinr);
+    out["nr_min_sinr_f1"] = math.min(nrF1Sinr);
+    out["nr_std_sinr_f1"] = utils.mwToDbm(math.std(utils.dbmToMw(nrF1Sinr)));
+
+    const nrF1Rsrp = nrF1.map(val => val.rsrp);
+    out["nr_avg_rsrp_f1"] = utils.mwToDbm(math.mean(utils.dbmToMw(nrF1Rsrp)));
+    out["nr_max_rsrp_f1"] = math.max(nrF1Rsrp);
+    out["nr_min_rsrp_f1"] = math.min(nrF1Rsrp);
+    out["nr_std_rsrp_f1"] = utils.mwToDbm(math.std(utils.dbmToMw(nrF1Rsrp)));
+
+    const nrF1Rsrq = nrF1.map(val => val.rsrq);
+    out["nr_avg_rsrq_f1"] = utils.mwToDbm(math.mean(utils.dbmToMw(nrF1Rsrq)));
+    out["nr_max_rsrq_f1"] = math.max(nrF1Rsrq);
+    out["nr_min_rsrq_f1"] = math.min(nrF1Rsrq);
+    out["nr_std_rsrq_f1"] = utils.mwToDbm(math.std(utils.dbmToMw(nrF1Rsrq)));
+  } else {
+    out["nr_avg_sinr_f1"] = 0;
+    out["nr_max_sinr_f1"] = 0;
+    out["nr_min_sinr_f1"] = 0;
+    out["nr_std_sinr_f1"] = 0;
+    out["nr_avg_rsrp_f1"] = 0;
+    out["nr_max_rsrp_f1"] = 0;
+    out["nr_min_rsrp_f1"] = 0;
+    out["nr_std_rsrp_f1"] = 0;
+    out["nr_avg_rsrq_f1"] = 0;
+    out["nr_max_rsrq_f1"] = 0;
+    out["nr_min_rsrq_f1"] = 0;
+    out["nr_std_rsrq_f1"] = 0;
+  }
+
+  const nrF2 = tempOut["nr_f2"];
+  if (nrF2.length > 0) {
+    const nrF2Sinr = nrF2.map(val => val.sinr);
+    out["nr_avg_sinr_f2"] = utils.mwToDbm(math.mean(utils.dbmToMw(nrF2Sinr)));
+    out["nr_max_sinr_f2"] = math.max(nrF2Sinr);
+    out["nr_min_sinr_f2"] = math.min(nrF2Sinr);
+    out["nr_std_sinr_f2"] = utils.mwToDbm(math.std(utils.dbmToMw(nrF2Sinr)));
+
+    const nrF2Rsrp = nrF2.map(val => val.rsrp);
+    out["nr_avg_rsrp_f2"] = utils.mwToDbm(math.mean(utils.dbmToMw(nrF2Rsrp)));
+    out["nr_max_rsrp_f2"] = math.max(nrF2Rsrp);
+    out["nr_min_rsrp_f2"] = math.min(nrF2Rsrp);
+    out["nr_std_rsrp_f2"] = utils.mwToDbm(math.std(utils.dbmToMw(nrF2Rsrp)));
+
+    const nrF2Rsrq = nrF2.map(val => val.rsrq);
+    out["nr_avg_rsrq_f2"] = utils.mwToDbm(math.mean(utils.dbmToMw(nrF2Rsrq)));
+    out["nr_max_rsrq_f2"] = math.max(nrF2Rsrq);
+    out["nr_min_rsrq_f2"] = math.min(nrF2Rsrq);
+    out["nr_std_rsrq_f2"] = utils.mwToDbm(math.std(utils.dbmToMw(nrF2Rsrq)));
+  } else {
+    out["nr_avg_sinr_f2"] = 0;
+    out["nr_max_sinr_f2"] = 0;
+    out["nr_min_sinr_f2"] = 0;
+    out["nr_std_sinr_f2"] = 0;
+    out["nr_avg_rsrp_f2"] = 0;
+    out["nr_max_rsrp_f2"] = 0;
+    out["nr_min_rsrp_f2"] = 0;
+    out["nr_std_rsrp_f2"] = 0;
+    out["nr_avg_rsrq_f2"] = 0;
+    out["nr_max_rsrq_f2"] = 0;
+    out["nr_min_rsrq_f2"] = 0;
+    out["nr_std_rsrq_f2"] = 0;
+  }
+
+  //////////
+  // WiFi //
+  //////////
+
+  const wifi2_4 = tempOut["wifi_2_4"];
+  if (wifi2_4.length > 0) {
+    const wifi2_4Rssi = wifi2_4.map(val => val.rssi);
+    out["avg_rssi_of_wifi_2_4"] = utils.mwToDbm(math.mean(utils.dbmToMw(wifi2_4Rssi)));
+    out["max_of_wifi_2_4"] = math.max(wifi2_4Rssi);
+    out["min_of_wifi_2_4"] = math.min(wifi2_4Rssi);
+    out["std_wifi_2_4_rssi"] = utils.mwToDbm(math.std(utils.dbmToMw(wifi2_4Rssi)));
+  } else {
+    out["avg_rssi_of_wifi_2_4"] = 0;
+    out["max_of_wifi_2_4"] = 0;
+    out["min_of_wifi_2_4"] = 0;
+    out["std_wifi_2_4_rssi"] = 0;
+  }
+
+  const wifi5 = tempOut["wifi_5"];
+  if (wifi5.length > 0) {
+    const wifi5Rssi = wifi5.map(val => val.rssi);
+    out["avg_rssi_of_wifi_5"] = utils.mwToDbm(math.mean(utils.dbmToMw(wifi5Rssi)));
+    out["max_of_wifi_5"] = math.max(wifi5Rssi);
+    out["min_of_wifi_5"] = math.min(wifi5Rssi);
+    out["std_wifi_5_rssi"] = utils.mwToDbm(math.std(utils.dbmToMw(wifi5Rssi)));
+  } else {
+    out["avg_rssi_of_wifi_5"] = 0;
+    out["max_of_wifi_5"] = 0;
+    out["min_of_wifi_5"] = 0;
+    out["std_wifi_5_rssi"] = 0;
+  }
+
+  const wifi6 = tempOut["wifi_6"];
+  if (wifi6.length > 0) {
+    const wifi6Rssi = wifi6.map(val => val.rssi);
+    out["avg_rssi_of_wifi_6"] = utils.mwToDbm(math.mean(utils.dbmToMw(wifi6Rssi)));
+    out["max_of_wifi_6"] = math.max(wifi6Rssi);
+    out["min_of_wifi_6"] = math.min(wifi6Rssi);
+    out["std_wifi_6_rssi"] = utils.mwToDbm(math.std(utils.dbmToMw(wifi6Rssi)));
+  } else {
+    out["avg_rssi_of_wifi_6"] = 0;
+    out["max_of_wifi_6"] = 0;
+    out["min_of_wifi_6"] = 0;
+    out["std_wifi_6_rssi"] = 0;
+  }
+
+  return out;
+}
+
+
 const csv = {
   toCsv: function(objArr, sep=",") {
     let outStr = Object.keys(objArr[0]).join(sep) + `\n`
@@ -652,6 +1237,80 @@ const csv = {
     } else {
       return this.toCsv(outputArr.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp)))
     }
+  },
+
+  ml: function(sigcapJson, aggMethod = "mean", intervalSec = 5) {
+    console.log(`Processing ML CSV... # data= ${sigcapJson.length}`)
+
+    let outputArr = [];
+    const usualCarriers = [
+      "AT&T",
+      "T-Mobile",
+      "Verizon"
+    ];
+
+    const uniqueUuids = sigcapJson.filter(entry => {
+      return usualCarriers.includes(utils.getCleanOp(entry));
+    }).reduce((prev, curr) => {
+      if (!prev.includes(curr.uuid)) {
+        prev.push(curr.uuid);
+      }
+      return prev;
+    }, []);
+
+    // Process the date per unique UUID.
+    for (let uuid of uniqueUuids) {
+      const uuidJson = sigcapJson.filter(val => val.uuid === uuid);
+
+      // Group entries based on timestamp ms
+      const grouped = Object.groupBy(uuidJson, entry => {
+        let timestamp = new Date(utils.getCleanDatetime(entry));
+        return Math.floor(timestamp.getTime() / 1000 / intervalSec);
+      });
+
+      const processed = Object.values(grouped).map(entries => {
+        // Put the first entry as the representative operator and timestamp
+        let operator = utils.getCleanOp(entries[0]);
+        let operatorIdx = (operator === "AT&T") ? 0 : (operator === "T-Mobile") ? 1 : 2;
+        let timestamp = new Date(utils.getCleanDatetime(entries[0]));
+
+        // Extract LTE/NR/Wi-Fi attributes from entries
+        let extracted = null;
+        if (aggMethod === "mean") {
+          extracted = entries.map(extractMean);
+        } else if (aggMethod === "concat") {
+          extracted = entries.map(extractConcat);
+        } else {
+          throw new Error(`Unknown aggregation method ${aggMethod} !`);
+        }
+
+        let groupedOut = {
+          "year": timestamp.getYear() + 1900,
+          "month": timestamp.getMonth() + 1,
+          "day": timestamp.getDate(),
+          "time_counter": (timestamp.getMilliseconds() / 1e3
+            + timestamp.getSeconds()
+            + 60 * timestamp.getMinutes()
+            + 60 * 60 * timestamp.getHours()),
+          "operator": operatorIdx,
+        };
+
+        // Collapse all extracted entries into one.
+        if (aggMethod === "mean") {
+          groupedOut = reduceMean(extracted, groupedOut);
+        } else if (aggMethod === "concat") {
+          groupedOut = reduceConcat(extracted, groupedOut);
+        } else {
+          throw new Error(`Unknown aggregation method ${aggMethod} !`);
+        }
+
+        return groupedOut;
+      });
+
+      outputArr = outputArr.concat(processed);
+    }
+
+    return outputArr;
   },
 
   psqlToCellJson: function (entry) {

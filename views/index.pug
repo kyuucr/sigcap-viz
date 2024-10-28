@@ -24,6 +24,8 @@ block content
               a.dropdown-item(href='javascript:void(0);' onclick='fetchFiles("cellular")')= 'Cellular CSV'
             li
               a.dropdown-item(href='javascript:void(0);' onclick='fetchFiles("wifi")')= 'Wi-Fi CSV'
+            li
+              a.dropdown-item(href='javascript:void(0);' onclick='showMlOptions()')= 'ML CSV'
       .col-12
         button.btn.btn-primary(type='button' onclick='fetchFiles("json")')= 'Download Raw JSON'
       .col-12
@@ -188,6 +190,25 @@ block content
             .spinner-border(role="status" style="width: 20vh; height: 20vh;")
               span.visually-hidden= 'Loading ...'
 
+    #mlModal.modal.fade(tabindex='-1' aria-labelledby='mlModalLabel' aria-hidden='true')
+      .modal-dialog
+        .modal-content
+          .modal-header
+            h1#mlModalLabel.modal-title.fs-5= 'ML CSV options'
+            button.btn-close(type='button' data-bs-dismiss='modal' aria-label='Close')
+          .modal-body
+            .container-sm
+              .row.mb-3
+                label.form-label(for="mlOptionAggIntervalInput")= 'Aggregate Interval (s)'
+                input#mlOptionAggIntervalInput.form-control(type="number" value="5")
+              .row.mb-3
+                label.form-label(for="mlOptionAggMethodSelect")= 'Aggregate Method'
+                select#mlOptionAggMethodSelect.form-select(aria-label="Aggregate Method")
+                  option(value="mean" selected)= 'Mean'
+                  option(value="concat")= 'Concatenate'
+          .modal-footer
+            button.btn.btn-secondary(type='button' data-bs-dismiss='modal')= 'Cancel'
+            button.btn.btn-primary(type='button' onclick='submitMlOptions()')= 'Submit'
 
   script(src='/javascripts/index.js')
   script(async defer src='https://maps.googleapis.com/maps/api/js?key=AIzaSyAcp-79zLw4hn8uA4HRJsWrRhvQQIp3ep4&loading=async&callback=initMap&libraries=visualization,drawing')
